@@ -1,0 +1,136 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Menu, X } from 'lucide-react'
+
+const navItems = [
+  { name: 'Home', href: '#home' },
+  { name: 'About', href: '#about' },
+  { name: 'Portfolio', href: '#portfolio' },
+  { name: 'Resume', href: '#resume' },
+  { name: 'Contact', href: '#contact' },
+]
+
+export default function Navigation() {
+  const [isScrolled, setIsScrolled] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY || document.documentElement.scrollTop || 0
+      setIsScrolled(scrollY > 50)
+    }
+    // Set initial state
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    document.addEventListener('scroll', handleScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      document.removeEventListener('scroll', handleScroll)
+    }
+  }, [])
+
+  const scrollToSection = (href: string) => {
+    const element = document.querySelector(href)
+    if (element) {
+      const yOffset = -80 // Offset for fixed navbar
+      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset
+      window.scrollTo({ top: y, behavior: 'smooth' })
+    }
+  }
+
+  return (
+    <motion.nav
+      className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 pointer-events-none"
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <div className="container mx-auto px-6 py-4 flex items-center justify-center">
+        {/* Desktop Navigation - Rounded container around links with liquid glass */}
+        <motion.div
+          className={`hidden md:flex items-center gap-8 px-8 py-4 rounded-full transition-all duration-300 pointer-events-auto ${
+            isScrolled ? 'glass-nav' : 'bg-transparent'
+          }`}
+          animate={{
+            background: isScrolled 
+              ? 'linear-gradient(135deg, rgba(10, 10, 10, 0.6) 0%, rgba(17, 17, 17, 0.7) 50%, rgba(10, 10, 10, 0.6) 100%)' 
+              : 'transparent',
+            backdropFilter: isScrolled ? 'blur(50px) saturate(200%) brightness(1.1)' : 'none',
+            WebkitBackdropFilter: isScrolled ? 'blur(50px) saturate(200%) brightness(1.1)' : 'none',
+            border: isScrolled ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid transparent',
+            boxShadow: isScrolled 
+              ? '0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.15), inset 0 -1px 0 0 rgba(255, 255, 255, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.05)' 
+              : 'none',
+          }}
+        >
+          {navItems.map((item, index) => (
+            <motion.button
+              key={item.name}
+              onClick={(e) => {
+                e.preventDefault()
+                scrollToSection(item.href)
+              }}
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              {item.name}
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300" />
+            </motion.button>
+          ))}
+        </motion.div>
+
+        {/* Mobile Menu Button - Rounded with liquid glass */}
+        <motion.button
+          className="md:hidden text-foreground px-6 py-3 rounded-full transition-all duration-300 pointer-events-auto"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          animate={{
+            background: isScrolled 
+              ? 'linear-gradient(135deg, rgba(10, 10, 10, 0.6) 0%, rgba(17, 17, 17, 0.7) 50%, rgba(10, 10, 10, 0.6) 100%)' 
+              : 'transparent',
+            backdropFilter: isScrolled ? 'blur(50px) saturate(200%) brightness(1.1)' : 'none',
+            WebkitBackdropFilter: isScrolled ? 'blur(50px) saturate(200%) brightness(1.1)' : 'none',
+            border: isScrolled ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid transparent',
+            boxShadow: isScrolled 
+              ? '0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.15), inset 0 -1px 0 0 rgba(255, 255, 255, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.05)' 
+              : 'none',
+          }}
+        >
+          {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </motion.button>
+      </div>
+
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            className="md:hidden bg-background/95 backdrop-blur-xl border-t border-border pointer-events-auto"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="container mx-auto px-6 py-4 flex flex-col gap-4">
+              {navItems.map((item) => (
+                <button
+                  key={item.name}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setIsMobileMenuOpen(false)
+                    scrollToSection(item.href)
+                  }}
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors text-left"
+                >
+                  {item.name}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.nav>
+  )
+}
