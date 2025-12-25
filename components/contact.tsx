@@ -62,7 +62,7 @@ export default function Contact() {
             Get In Touch
           </motion.h2>
           <p className="text-center text-muted-foreground mb-16 max-w-2xl mx-auto font-[var(--font-ubuntu)] font-normal">
-            Let's connect and discuss opportunities or collaborations
+            Let&apos;s connect and discuss opportunities or collaborations
           </p>
 
           <div className="grid md:grid-cols-2 gap-8">
