@@ -162,7 +162,7 @@ export default function Contact() {
                   {[
                     { icon: Linkedin, href: 'https://www.linkedin.com/in/aarit-malhotra-b5198b171/', label: 'LinkedIn', desc: 'Professional Network', gradient: 'from-blue-500/20 to-blue-600/20', color: 'text-blue-400' },
                     { icon: Instagram, href: 'http://instagram.com/aaritmalhotra09', label: 'Instagram', desc: '@aaritmalhotra09', gradient: 'from-pink-500/20 to-purple-500/20', color: 'text-pink-400' },
-                    { icon: Github, href: 'https://github.com', label: 'GitHub', desc: 'Code & Projects', gradient: 'from-gray-500/20 to-gray-600/20', color: 'text-gray-400' },
+                    { icon: Github, href: 'https://github.com/notExotiss/', label: 'GitHub', desc: 'Code & Projects', gradient: 'from-gray-500/20 to-gray-600/20', color: 'text-gray-400' },
                     { icon: Mail, href: 'mailto:iamaaritmalhotra@gmail.com', label: 'Email', desc: 'Direct Message', gradient: 'from-red-500/20 to-orange-500/20', color: 'text-red-400' },
                   ].map((social, index) => (
                     <Tilt key={social.label} tiltMaxAngleX={10} tiltMaxAngleY={10} scale={1.05}>

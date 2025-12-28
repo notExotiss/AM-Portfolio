@@ -78,7 +78,7 @@ export default function Hero() {
             transition={{ duration: 0.8, delay: 0.6 }}
           >
             {[
-              { icon: Github, href: 'https://github.com', label: 'GitHub', color: 'from-gray-600 to-gray-800' },
+              { icon: Github, href: 'https://github.com/notExotiss/', label: 'GitHub', color: 'from-gray-600 to-gray-800' },
               { icon: Linkedin, href: 'https://www.linkedin.com/in/aarit-malhotra-b5198b171/', label: 'LinkedIn', color: 'from-blue-500 to-blue-700' },
               { icon: Instagram, href: 'http://instagram.com/aaritmalhotra09', label: 'Instagram', color: 'from-pink-500 to-purple-500' },
             ].map((social, index) => (
