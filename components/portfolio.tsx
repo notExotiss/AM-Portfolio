@@ -180,7 +180,7 @@ export default function Portfolio() {
         clearInterval(hoverImageIntervalRef.current)
       }
     }
-  }, [hoveredId])
+  }, [hoveredId, isMobile])
 
   // Auto-scroll images for mobile portfolio items
   useEffect(() => {
@@ -209,7 +209,7 @@ export default function Portfolio() {
       })
       mobileImageIntervalRefs.current = {}
     }
-  }, [inView])
+  }, [inView, isMobile, mobileProjectImageIndices])
 
   // Track mouse position globally
   useEffect(() => {
@@ -477,6 +477,7 @@ export default function Portfolio() {
                                     whileTap={{ scale: 0.95 }}
                                   >
                                     <div className="relative w-5 h-5 flex items-center justify-center">
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
                                       <img
                                         src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=32`}
                                         alt="Website favicon"
@@ -681,6 +682,7 @@ export default function Portfolio() {
                                 whileTap={{ scale: 0.95 }}
                               >
                                 <div className="relative w-5 h-5 flex items-center justify-center">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img
                                     src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=32`}
                                     alt="Website favicon"

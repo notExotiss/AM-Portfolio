@@ -25,6 +25,8 @@ function ParticleField({ count = 2000 }) {
   useFrame((state) => {
     if (!mesh.current) return
 
+    const currentMesh = mesh.current
+    
     particles.forEach((particle, i) => {
       let { factor, speed, x, y, z } = particle
       const t = (particle.time += speed)
@@ -39,10 +41,10 @@ function ParticleField({ count = 2000 }) {
         new THREE.Quaternion(),
         new THREE.Vector3(0.5, 0.5, 0.5)
       )
-      mesh.current.setMatrixAt(i, matrix)
+      currentMesh.setMatrixAt(i, matrix)
     })
 
-    mesh.current.instanceMatrix.needsUpdate = true
+    currentMesh.instanceMatrix.needsUpdate = true
 
     if (light.current) {
       light.current.position.x = state.mouse.x * 50

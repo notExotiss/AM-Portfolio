@@ -107,12 +107,12 @@ export default function About() {
               style={{ y: parallaxY }}
             >
               <p className="text-lg md:text-xl text-foreground/90 leading-relaxed font-[var(--font-space-grotesk)]">
-                Hey! I&apos;m a high school student who loves coding and building cool stuff. I&apos;m currently a junior 
+                Hey! I&apos;m a high school student who loves coding and building cool stuff. I&apos;m currently a sophomore 
                 at John P. Stevens High School, and when I&apos;m not in class, you&apos;ll find me working on projects, 
                 competing in programming contests, or tinkering with new technologies.
               </p>
               <p className="text-lg md:text-xl text-muted-foreground/80 leading-relaxed font-[var(--font-space-grotesk)]">
-                I started coding with Python a few years ago and got hooked. Since then, I&apos;ve been learning 
+                I started coding with C a few years ago and got hooked. Since then, I&apos;ve been learning 
                 web development, working with React and Next.js, and building projects that solve real problems. 
                 I&apos;m also co-founding the Woodrow Wilson Math Competition (WWMC), where I built the platform 
                 that helps run competitions for 400+ students!
