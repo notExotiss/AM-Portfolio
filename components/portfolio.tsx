@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
-import { X } from 'lucide-react'
+import { X, Code2, ExternalLink } from 'lucide-react'
 import * as Dialog from '@radix-ui/react-dialog'
 import Image from 'next/image'
 
@@ -17,38 +17,94 @@ const projects = [
     tech: ['HTML', 'CSS', 'JavaScript', 'Excel'],
     images: [
       { url: '/project1-1.png', note: 'Homepage with competition information and registration' },
-      { url: '/project1-2.png', note: 'Participant dashboard showing scores and rankings' },
-      { url: '/project1-3.png', note: 'Admin panel for managing competitions and volunteers' },
+      { url: '/project1-2.png', note: 'Excel sheet with scoring system' },
+      { url: '/project1-3.jpg', note: 'In-person event with participants and volunteers' },
     ],
     gradient: 'from-blue-500 to-cyan-500',
     color: '#3b82f6',
+    links: {
+      website: 'https://wwmc.online/',
+      github: 'https://github.com/notExotiss/WWMC',
+    },
   },
   {
     id: 2,
     number: '02',
-    title: 'Robotics Control System',
-    description: 'iOS Development / Product Design',
-    tech: ['Java', 'Robotics'],
+    title: 'A.M. Tutoring',
+    description: 'UI/UX Design / Fullstack Development',
+    tech: ['Next.js', 'React', 'TypeScript', 'Tailwind CSS'],
     images: [
-      { url: '/project2-1.jpg', note: 'Robot control interface with sensor integration' },
-      { url: '/project2-2.jpg', note: 'Autonomous navigation system in action' },
+      { url: '/project2-1.png', note: 'Personalized SAT prep tutoring website homepage' },
+      { url: '/project2-2.png', note: 'Admin panel for managing tutors and students' },
+      { url: '/project2-3.png', note: 'Test creation interface with question bank and scoring' },
+      { url: '/project2-4.png', note: 'Student dashboard for viewing courses and progress' },
+      { url: '/project2-5.png', note: 'Test taking interface with timer and score tracking' }
     ],
-    gradient: 'from-red-500 to-pink-500',
-    color: '#ef4444',
+    gradient: 'from-blue-500 to-cyan-500',
+    color: '#3b82f6',
+    links: {
+      website: 'https://am-tutoring.vercel.app/',
+      github: 'https://github.com/notExotiss/am-tutoring',
+    },
   },
   {
     id: 3,
     number: '03',
-    title: 'Fullstack Web Application',
-    description: 'Frontend Development',
-    tech: ['React', 'Next.js', 'TypeScript', 'Tailwind CSS'],
+    title: 'LockedIn',
+    description: 'Chrome Extension / Civil Action Project',
+    tech: ['JavaScript', 'HTML', 'CSS', 'Chrome APIs'],
     images: [
-      { url: '/project3-1.jpg', note: 'Main dashboard with interactive components' },
-      { url: '/project3-2.jpg', note: 'User authentication and profile management' },
+      { url: '/project3-1.png', note: 'Chrome webstore listing page' },
+      { url: '/project3-2.png', note: 'LockedIn Chrome extension interface with focus features' },
+      { url: '/project3-3.png', note: 'Site blocker and task manager functionality' },
     ],
     gradient: 'from-purple-500 to-indigo-500',
     color: '#8b5cf6',
+    links: {
+      website: 'https://chromewebstore.google.com/detail/lockedin/odkjipklpkbocmkmfnhkkcdmmadbgblp',
+      github: '',
+    },
   },
+  {
+    id: 4,
+    number: '04',
+    title: 'AgriSense',
+    description: 'Congressional App Challenge / Fullstack',
+    tech: ['React', 'Firebase', 'JavaScript', 'Satellite APIs', 'Arduino'],
+    images: [
+      { url: '/project4-1.png', note: 'AgriSense dashboard with NDVI vegetation health analysis' },
+      { url: '/project4-2.png', note: 'NDVI plot analysis and satellite imagery mapping' },
+    ],
+    gradient: 'from-green-500 to-emerald-500',
+    color: '#10b981',
+    links: {
+      website: 'https://brightbite-81e92.web.app/dashboard',
+      github: 'https://github.com/notExotiss/AgriSense',
+      youtube: 'https://www.youtube.com/watch?v=kbmHF0GeT-0',
+    },
+  },
+  {
+    id: 5,
+    number: '05',
+    title: 'Back In Time',
+    description: 'FBLA Video Game Challenge / Game Development',
+    tech: ['C#', 'Unity', 'Aseprite', 'Photoshop'],
+    images: [
+      { url: '/project5-1.png', note: '2D platformer gameplay screenshot' },
+      { url: '/project5-2.png', note: '3D platformer gameplay screenshot' },
+      { url: '/project5-3.png', note: 'Unity editor and scene management' },
+      { url: '/project5-3.png', note: 'Code implementation and debugging' },
+
+
+    ],
+    gradient: 'from-orange-500 to-red-500',
+    color: '#f97316',
+    links: {
+      website: 'https://fblabit.itch.io/backintime',
+      github: '',
+    },
+  },
+
 ]
 
 export default function Portfolio() {
@@ -63,26 +119,97 @@ export default function Portfolio() {
   const [selectedProject, setSelectedProject] = useState<typeof projects[0] | null>(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [hoveredId, setHoveredId] = useState<number | null>(null)
+  const [hoverImageIndex, setHoverImageIndex] = useState(0)
+  const [mobileProjectImageIndices, setMobileProjectImageIndices] = useState<Record<number, number>>({})
+  const [isMobile, setIsMobile] = useState(false)
   const cursorImageRef = useRef<HTMLDivElement>(null)
   const autoScrollIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const hoverImageIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const mobileImageIntervalRefs = useRef<Record<number, NodeJS.Timeout>>({})
   const mousePositionRef = useRef({ x: 0, y: 0 })
+
+  // Detect mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   // Auto-scroll images in modal
   useEffect(() => {
     if (selectedProject && selectedProject.images.length > 1) {
+      const imagesLength = selectedProject.images.length
       autoScrollIntervalRef.current = setInterval(() => {
         setCurrentImageIndex((prev) => 
-          prev === selectedProject.images.length - 1 ? 0 : prev + 1
+          prev === imagesLength - 1 ? 0 : prev + 1
         )
       }, 3000)
+    } else {
+      setCurrentImageIndex(0)
     }
 
     return () => {
       if (autoScrollIntervalRef.current) {
         clearInterval(autoScrollIntervalRef.current)
+        autoScrollIntervalRef.current = null
       }
     }
   }, [selectedProject])
+
+  // Auto-scroll images in hover preview (desktop only)
+  useEffect(() => {
+    if (hoveredId && !isMobile) {
+      const project = projects.find(p => p.id === hoveredId)
+      if (project && project.images.length > 1) {
+        setHoverImageIndex(0)
+        hoverImageIntervalRef.current = setInterval(() => {
+          setHoverImageIndex((prev) => 
+            prev === project.images.length - 1 ? 0 : prev + 1
+          )
+        }, 2000)
+      } else {
+        setHoverImageIndex(0)
+      }
+    } else {
+      setHoverImageIndex(0)
+    }
+
+    return () => {
+      if (hoverImageIntervalRef.current) {
+        clearInterval(hoverImageIntervalRef.current)
+      }
+    }
+  }, [hoveredId])
+
+  // Auto-scroll images for mobile portfolio items
+  useEffect(() => {
+    if (isMobile) {
+      projects.forEach((project) => {
+        if (project.images.length > 1) {
+          if (!mobileProjectImageIndices[project.id]) {
+            setMobileProjectImageIndices((prev) => ({ ...prev, [project.id]: 0 }))
+          }
+          if (mobileImageIntervalRefs.current[project.id]) {
+            clearInterval(mobileImageIntervalRefs.current[project.id])
+          }
+          mobileImageIntervalRefs.current[project.id] = setInterval(() => {
+            setMobileProjectImageIndices((prev) => ({
+              ...prev,
+              [project.id]: (prev[project.id] || 0) === project.images.length - 1 ? 0 : (prev[project.id] || 0) + 1
+            }))
+          }, 3000)
+        }
+      })
+    }
+
+    return () => {
+      Object.values(mobileImageIntervalRefs.current).forEach((interval) => {
+        if (interval) clearInterval(interval)
+      })
+      mobileImageIntervalRefs.current = {}
+    }
+  }, [inView])
 
   // Track mouse position globally
   useEffect(() => {
@@ -131,9 +258,9 @@ export default function Portfolio() {
         return
       }
       
-      // Very slow interpolation for smooth, flowing feel (0.03)
-      currentPositionRef.current.x += (mousePositionRef.current.x - currentPositionRef.current.x) * 0.03
-      currentPositionRef.current.y += (mousePositionRef.current.y - currentPositionRef.current.y) * 0.03
+      // Faster interpolation for more responsive movement (0.12)
+      currentPositionRef.current.x += (mousePositionRef.current.x - currentPositionRef.current.x) * 0.12
+      currentPositionRef.current.y += (mousePositionRef.current.y - currentPositionRef.current.y) * 0.12
       
       cursorImageRef.current.style.left = `${currentPositionRef.current.x}px`
       cursorImageRef.current.style.top = `${currentPositionRef.current.y}px`
@@ -165,7 +292,7 @@ export default function Portfolio() {
             style={{ y: parallaxY }}
           >
             <motion.h2
-              className="text-5xl md:text-6xl font-bold mb-20 text-center font-[var(--font-titillium)]"
+              className="text-5xl md:text-6xl lg:text-7xl font-bold mb-20 md:mb-24 text-left font-[var(--font-titillium)] tracking-tight"
               initial={{ opacity: 0 }}
               animate={inView ? { opacity: 1 } : {}}
               style={{
@@ -182,84 +309,215 @@ export default function Portfolio() {
 
             {/* List-style Portfolio */}
             <div className="space-y-0">
-              {projects.map((project, index) => (
-                <motion.div
-                  key={project.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={inView ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  onMouseEnter={() => {
-                    setHoveredId(project.id)
-                  }}
-                  onMouseLeave={() => {
-                    setHoveredId(null)
-                  }}
-                  onClick={() => {
-                    setSelectedProject(project)
-                    setCurrentImageIndex(0)
-                  }}
-                  className="group cursor-none"
-                  data-portfolio-item
-                >
+              {projects.map((project, index) => {
+                const currentImageIdx = mobileProjectImageIndices[project.id] || 0
+                return (
                   <motion.div
-                    className="flex items-center justify-between py-6 border-b border-border/50 hover:border-primary/50 transition-colors"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    key={project.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={inView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    onMouseEnter={() => {
+                      if (!isMobile) {
+                        setHoveredId(project.id)
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      if (!isMobile) {
+                        setHoveredId(null)
+                      }
+                    }}
+                    onClick={() => {
+                      if (!isMobile) {
+                        setSelectedProject(project)
+                        setCurrentImageIndex(0)
+                      }
+                    }}
+                    className="group"
+                    data-portfolio-item
                   >
-                    {/* Left side - Number and Title */}
-                    <div className="flex items-center gap-8">
-                      <motion.span
-                        className="text-sm text-muted-foreground font-mono w-8 font-[var(--font-dm-mono)]"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.4, delay: index * 0.1 + 0.1 }}
-                      >
-                        {project.number}
-                      </motion.span>
-                      <motion.h3
-                        className="text-2xl md:text-3xl font-semibold font-[var(--font-titillium)]"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.4, delay: index * 0.1 + 0.1 }}
-                      >
-                        <motion.span
-                          className="block"
-                          animate={{
-                            color: hoveredId === project.id ? '#3b82f6' : 'rgb(255, 255, 255)',
-                          }}
-                          transition={{
-                            duration: 0.6,
-                            ease: 'easeInOut',
-                          }}
-                        >
-                          {project.title}
-                        </motion.span>
-                      </motion.h3>
-                    </div>
-
-                    {/* Right side - Description */}
-                    <motion.span
-                      className="text-sm text-muted-foreground hidden md:block font-[var(--font-inter)]"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.4, delay: index * 0.1 + 0.15 }}
+                    {/* Desktop: Simple list item */}
+                    <motion.div
+                      className="hidden md:flex items-center justify-between py-8 border-b border-border/30 hover:border-primary/50 transition-colors"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
                     >
-                      {project.description}
-                    </motion.span>
+                      {/* Left side - Number and Title */}
+                      <div className="flex items-center gap-8">
+                        <motion.span
+                          className="text-sm text-muted-foreground font-mono w-8 font-[var(--font-dm-mono)]"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 0.4, delay: index * 0.1 + 0.1 }}
+                        >
+                          {project.number}
+                        </motion.span>
+                        <motion.h3
+                          className="text-2xl md:text-3xl lg:text-4xl font-bold font-[var(--font-titillium)] tracking-tight"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.4, delay: index * 0.1 + 0.1 }}
+                        >
+                          <motion.span
+                            className="block"
+                            animate={{
+                              color: hoveredId === project.id ? '#3b82f6' : 'rgb(255, 255, 255)',
+                            }}
+                            transition={{
+                              duration: 0.6,
+                              ease: 'easeInOut',
+                            }}
+                          >
+                            {project.title}
+                          </motion.span>
+                        </motion.h3>
+                      </div>
+
+                      {/* Right side - Description */}
+                      <motion.span
+                        className="text-sm md:text-base text-muted-foreground/80 font-[var(--font-space-grotesk)]"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.4, delay: index * 0.1 + 0.15 }}
+                      >
+                        {project.description}
+                      </motion.span>
+                    </motion.div>
+
+                    {/* Mobile: Full card with images and info */}
+                    <motion.div
+                      className="md:hidden mb-10 glass-card rounded-3xl overflow-hidden border border-border/30"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                    >
+                      {/* Image carousel */}
+                      <div className="relative w-full aspect-video bg-secondary">
+                        <AnimatePresence mode="wait">
+                          {project.images[currentImageIdx] && (
+                            <motion.div
+                              key={`${project.id}-mobile-${currentImageIdx}`}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.5 }}
+                              className="absolute inset-0"
+                            >
+                              <Image
+                                src={project.images[currentImageIdx].url}
+                                alt={project.images[currentImageIdx].note}
+                                fill
+                                className="object-cover"
+                                sizes="100vw"
+                              />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                        {/* Image indicators */}
+                        {project.images.length > 1 && (
+                          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+                            {project.images.map((img) => (
+                              <div
+                                key={`${project.id}-indicator-${img.url}`}
+                                className={`h-1.5 rounded-full transition-all ${
+                                  project.images.indexOf(img) === currentImageIdx ? 'w-8 bg-primary' : 'w-1.5 bg-white/30'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Project Info */}
+                      <div className="p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                          <span className="text-xs text-muted-foreground/60 font-mono font-[var(--font-dm-mono)]">{project.number}</span>
+                          <h3 className="text-2xl font-bold font-[var(--font-titillium)] tracking-tight">{project.title}</h3>
+                        </div>
+                        <p className="text-sm text-muted-foreground/80 mb-5 font-[var(--font-space-grotesk)] leading-relaxed">{project.description}</p>
+                        
+                        {/* Tech Stack */}
+                        <div className="flex flex-wrap gap-2 mb-5">
+                          {project.tech.map((tech) => (
+                            <span
+                              key={tech}
+                              className="px-3 py-1.5 text-xs bg-secondary/50 backdrop-blur-sm rounded-full border border-border/30 font-[var(--font-space-grotesk)] font-medium"
+                            >
+                              {tech}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Links */}
+                        {(project.links?.website || project.links?.github) && (
+                          <div className="flex gap-3">
+                            {project.links.github && (
+                              <motion.a
+                                href={project.links.github}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary/50 backdrop-blur-sm border border-border/50 active:border-primary/50 transition-all"
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <Code2 size={18} className="text-muted-foreground" />
+                                <span className="text-sm font-[var(--font-ubuntu)] text-muted-foreground">GitHub</span>
+                              </motion.a>
+                            )}
+                            {project.links.website && (() => {
+                              try {
+                                const websiteUrl = new URL(project.links.website)
+                                const hostname = websiteUrl.hostname.replace('www.', '')
+                                return (
+                                  <motion.a
+                                    href={project.links.website}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary/50 backdrop-blur-sm border border-border/50 active:border-primary/50 transition-all relative"
+                                    whileTap={{ scale: 0.95 }}
+                                  >
+                                    <div className="relative w-5 h-5 flex items-center justify-center">
+                                      <img
+                                        src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=32`}
+                                        alt="Website favicon"
+                                        className="w-4 h-4"
+                                        onError={(e) => {
+                                          const target = e.target as HTMLImageElement
+                                          target.style.display = 'none'
+                                        }}
+                                      />
+                                    </div>
+                                    <span className="text-sm font-[var(--font-ubuntu)] text-muted-foreground">Website</span>
+                                  </motion.a>
+                                )
+                              } catch {
+                                return null
+                              }
+                            })()}
+                          </div>
+                        )}
+
+                        {/* Image note */}
+                        {project.images[currentImageIdx] && (
+                          <p className="text-xs text-muted-foreground/70 mt-5 font-[var(--font-space-grotesk)] leading-relaxed">
+                            {project.images[currentImageIdx].note}
+                          </p>
+                        )}
+                      </div>
+                    </motion.div>
                   </motion.div>
-                </motion.div>
-              ))}
+                )
+              })}
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Cursor-following Image - box stays, content fades */}
-      {hoveredProject && (
+      {/* Cursor-following Image - box stays, content fades (desktop only) */}
+      {hoveredProject && !isMobile && (
         <motion.div
           ref={cursorImageRef}
-          className="fixed pointer-events-none z-[10000] w-80 h-48 rounded-xl overflow-hidden border-2 border-primary/50 shadow-2xl glass-card"
+          className="fixed pointer-events-none z-[10000] w-80 h-48 rounded-3xl overflow-hidden border-2 border-primary/50 shadow-2xl glass-card"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ 
             opacity: 1, 
@@ -267,29 +525,29 @@ export default function Portfolio() {
           }}
           exit={{ opacity: 0, scale: 0.9 }}
           transition={{ 
-            opacity: { duration: 0.3 },
-            scale: { duration: 0.3 },
+            opacity: { duration: 0.15 },
+            scale: { duration: 0.15 },
           }}
           style={{
             willChange: 'transform, left, top',
           }}
         >
           <AnimatePresence mode="wait">
-            {hoveredProject.images[0] && (
+            {hoveredProject.images[hoverImageIndex] && (
               <motion.div 
-                key={hoveredProject.id}
+                key={`${hoveredProject.id}-${hoverImageIndex}`}
                 className="w-full h-full relative"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ 
-                  duration: 0.15, 
+                  duration: 0.2, 
                   ease: [0.25, 0.1, 0.25, 1],
                 }}
               >
                 <Image
-                  src={hoveredProject.images[0].url}
-                  alt={hoveredProject.title}
+                  src={hoveredProject.images[hoverImageIndex].url}
+                  alt={hoveredProject.images[hoverImageIndex].note || hoveredProject.title}
                   fill
                   className="object-cover"
                   sizes="320px"
@@ -300,7 +558,7 @@ export default function Portfolio() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
                   transition={{ 
-                    duration: 0.5, 
+                    duration: 0.2, 
                     ease: 'easeOut',
                   }}
                 >
@@ -312,84 +570,160 @@ export default function Portfolio() {
         </motion.div>
       )}
 
-      {/* Project Detail Modal */}
+      {/* Project Detail Modal (desktop only) */}
+      {!isMobile && (
       <Dialog.Root open={!!selectedProject} onOpenChange={() => setSelectedProject(null)}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-black/95 backdrop-blur-md z-50" />
-          <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-7xl max-h-[95vh] glass-card rounded-2xl z-50 overflow-hidden shadow-2xl">
+          <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-7xl h-[90vh] max-h-[90vh] glass-card rounded-3xl z-50 overflow-hidden shadow-2xl flex flex-col">
             {selectedProject && (
               <motion.div
-                className="relative flex h-full"
+                className="relative flex flex-col md:flex-row h-full min-h-0"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3 }}
               >
                 {/* Main Image Area - Left Side */}
-                <div className="flex-1 relative bg-secondary overflow-hidden">
-                  <AnimatePresence mode="wait">
-                    {selectedProject.images[currentImageIndex] && (
-                      <motion.div
-                        key={currentImageIndex}
-                        initial={{ opacity: 0, y: -50 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 50 }}
-                        transition={{ duration: 0.5, ease: 'easeInOut' }}
-                        className="absolute inset-0 flex items-center justify-center"
-                      >
-                        <Image
-                          src={selectedProject.images[currentImageIndex].url}
-                          alt={selectedProject.images[currentImageIndex].note}
-                          fill
-                          className="object-contain"
-                          sizes="(max-width: 768px) 100vw, 70vw"
-                          priority
-                        />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                <div className="flex-1 relative bg-secondary overflow-hidden min-h-0 flex flex-col">
+                  <div className="relative flex-1 min-h-0">
+                    <AnimatePresence mode="wait">
+                      {selectedProject.images[currentImageIndex] && (() => {
+                        const currentImage = selectedProject.images[currentImageIndex]
+                        return (
+                          <motion.div
+                            key={`${selectedProject.id}-img-${currentImageIndex}-${currentImage.url}`}
+                            initial={{ opacity: 0, y: -50 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 50 }}
+                            transition={{ duration: 0.5, ease: 'easeInOut' }}
+                            className="absolute inset-0 flex items-center justify-center p-4"
+                          >
+                            <Image
+                              key={`img-${selectedProject.id}-${currentImageIndex}-${currentImage.url}`}
+                              src={currentImage.url}
+                              alt={currentImage.note}
+                              fill
+                              className="object-contain"
+                              sizes="(max-width: 768px) 100vw, 70vw"
+                              priority={currentImageIndex === 0}
+                            />
+                          </motion.div>
+                        )
+                      })()}
+                    </AnimatePresence>
 
-                  {/* Close Button */}
-                  <Dialog.Close asChild>
-                    <motion.button
-                      className="absolute top-4 right-4 p-3 rounded-full glass-card hover:border-primary transition-all group z-10"
-                      whileHover={{ scale: 1.1, rotate: 90 }}
-                      whileTap={{ scale: 0.9 }}
-                    >
-                      <X size={20} className="group-hover:text-primary transition-colors" />
-                    </motion.button>
-                  </Dialog.Close>
+                    {/* Close Button */}
+                    <Dialog.Close asChild>
+                      <motion.button
+                        className="absolute top-4 right-4 p-3 rounded-full glass-card hover:border-primary transition-all group z-10"
+                        whileHover={{ scale: 1.1, rotate: 90 }}
+                        whileTap={{ scale: 0.9 }}
+                      >
+                        <X size={20} className="group-hover:text-primary transition-colors" />
+                      </motion.button>
+                    </Dialog.Close>
+                  </div>
+
+                  {/* Current Image Note - Moved below image */}
+                  <div className="p-4 border-t border-border/30 bg-secondary/30 backdrop-blur-sm flex-shrink-0">
+                    <p className="text-sm text-muted-foreground/70 font-[var(--font-space-grotesk)] leading-relaxed">
+                      <strong className="text-foreground font-[var(--font-space-grotesk)] font-semibold">Note:</strong> {selectedProject.images[currentImageIndex]?.note}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Sidebar - Right Side */}
-                <div className="w-80 glass-card border-l border-border/50 flex flex-col">
+                <div className="w-full md:w-80 glass-card border-t md:border-t-0 md:border-l border-border/30 flex flex-col flex-shrink-0 max-h-full min-h-0">
                   {/* Project Info */}
-                  <div className="p-6 border-b border-border/50">
-                    <h3 className="text-2xl font-bold mb-2 font-[var(--font-titillium)]">{selectedProject.title}</h3>
-                    <p className="text-muted-foreground text-sm mb-4 font-[var(--font-ubuntu)]">{selectedProject.description}</p>
+                  <div className="p-4 md:p-6 border-b border-border/30 flex-shrink-0 overflow-y-auto">
+                    <h3 className="text-xl md:text-2xl font-bold mb-2 font-[var(--font-titillium)] tracking-tight">{selectedProject.title}</h3>
+                    <p className="text-muted-foreground/80 text-sm mb-4 font-[var(--font-space-grotesk)] leading-relaxed">{selectedProject.description}</p>
                     
                     {/* Tech Stack */}
                     <div className="flex flex-wrap gap-2 mb-4">
                       {selectedProject.tech.map((tech) => (
                         <span
                           key={tech}
-                          className="px-3 py-1 text-xs bg-secondary/50 backdrop-blur-sm rounded-full border border-border/50 font-[var(--font-dm-mono)]"
+                          className="px-3 py-1.5 text-xs bg-secondary/50 backdrop-blur-sm rounded-full border border-border/30 font-[var(--font-space-grotesk)] font-medium"
                         >
                           {tech}
                         </span>
                       ))}
                     </div>
+
+                    {/* Project Links */}
+                    {(selectedProject.links?.website || selectedProject.links?.github) && (
+                      <div className="flex flex-wrap gap-3">
+                        {selectedProject.links.github && (
+                          <motion.a
+                            href={selectedProject.links.github}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 backdrop-blur-sm border border-border/30 hover:border-primary/50 hover:bg-secondary transition-all group"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <Code2 size={18} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                            <span className="text-sm font-[var(--font-space-grotesk)] text-muted-foreground/80 group-hover:text-primary transition-colors font-medium">GitHub</span>
+                          </motion.a>
+                        )}
+                        {selectedProject.links.website && (() => {
+                          try {
+                            const websiteUrl = new URL(selectedProject.links.website)
+                            const hostname = websiteUrl.hostname.replace('www.', '')
+                            return (
+                              <motion.a
+                                href={selectedProject.links.website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 backdrop-blur-sm border border-border/30 hover:border-primary/50 hover:bg-secondary transition-all group relative"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <div className="relative w-5 h-5 flex items-center justify-center">
+                                  <img
+                                    src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=32`}
+                                    alt="Website favicon"
+                                    className="w-4 h-4"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement
+                                      target.style.display = 'none'
+                                    }}
+                                  />
+                                </div>
+                                <span className="text-sm font-[var(--font-space-grotesk)] text-muted-foreground/80 group-hover:text-primary transition-colors font-medium">Website</span>
+                              </motion.a>
+                            )
+                          } catch {
+                            return (
+                              <motion.a
+                                href={selectedProject.links.website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 backdrop-blur-sm border border-border/30 hover:border-primary/50 hover:bg-secondary transition-all group"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <ExternalLink size={18} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                                <span className="text-sm font-[var(--font-space-grotesk)] text-muted-foreground/80 group-hover:text-primary transition-colors font-medium">Website</span>
+                              </motion.a>
+                            )
+                          }
+                        })()}
+                      </div>
+                    )}
                   </div>
 
                   {/* Image Thumbnails Sidebar */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
                     {selectedProject.images.map((image, index) => (
                       <motion.button
                         key={`${selectedProject.id}-thumb-${image.url}-${index}`}
                         onClick={() => setCurrentImageIndex(index)}
-                        className={`w-full aspect-video rounded-lg overflow-hidden border-2 transition-all relative group backdrop-blur-sm ${
+                        className={`w-full aspect-video rounded-2xl overflow-hidden border-2 transition-all relative group backdrop-blur-sm ${
                           index === currentImageIndex
                             ? 'border-primary scale-105'
-                            : 'border-border/50 hover:border-primary/50'
+                            : 'border-border/30 hover:border-primary/50'
                         }`}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
@@ -410,19 +744,13 @@ export default function Portfolio() {
                       </motion.button>
                     ))}
                   </div>
-
-                  {/* Current Image Note */}
-                  <div className="p-4 border-t border-border/50 bg-secondary/30 backdrop-blur-sm">
-                    <p className="text-sm text-muted-foreground font-[var(--font-ubuntu)]">
-                      <strong className="text-foreground font-[var(--font-titillium)]">Note:</strong> {selectedProject.images[currentImageIndex]?.note}
-                    </p>
-                  </div>
                 </div>
               </motion.div>
             )}
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
+      )}
     </>
   )
 }

@@ -8,6 +8,7 @@ export default function InteractiveCursor() {
   const [isHovering, setIsHovering] = useState(false)
   const [isClicking, setIsClicking] = useState(false)
   const [cursorVariant, setCursorVariant] = useState('default')
+  const [isMobile, setIsMobile] = useState(false)
 
   const cursorX = useMotionValue(-100)
   const cursorY = useMotionValue(-100)
@@ -17,7 +18,18 @@ export default function InteractiveCursor() {
   const cursorXSpring = useSpring(cursorX, springConfig)
   const cursorYSpring = useSpring(cursorY, springConfig)
 
+  // Check if mobile
   useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  useEffect(() => {
+    // Don't set up cursor on mobile
+    if (isMobile) return
+    
     let rafId: number
     const handleMouseMove = (e: MouseEvent) => {
       // Use requestAnimationFrame for smoother, frame-synced updates
@@ -69,7 +81,7 @@ export default function InteractiveCursor() {
         el.removeEventListener('mouseleave', handleMouseLeave)
       })
     }
-  }, [cursorX, cursorY])
+  }, [cursorX, cursorY, isMobile])
 
   // Hide cursor on portfolio hover
   const isPortfolioHover = cursorVariant === 'hidden'
@@ -98,6 +110,9 @@ export default function InteractiveCursor() {
       })
     }
   }, [])
+
+  // Don't render cursor on mobile
+  if (isMobile) return null
 
   return (
     <>

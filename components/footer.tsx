@@ -23,32 +23,9 @@ export default function Footer() {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="flex gap-4"
+            className="flex gap-4 text-muted-foreground text-sm"
           >
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 rounded-full bg-card border border-border hover:border-primary transition-all"
-            >
-              <Github size={20} />
-            </a>
-            <a
-              href="https://www.linkedin.com/in/aarit-malhotra-b5198b171/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 rounded-full bg-card border border-border hover:border-primary transition-all"
-            >
-              <Linkedin size={20} />
-            </a>
-            <a
-              href="http://instagram.com/aaritmalhotra09"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 rounded-full bg-card border border-border hover:border-primary transition-all"
-            >
-              <Instagram size={20} />
-            </a>
+            Edison, New Jersey
           </motion.div>
         </div>
       </div>

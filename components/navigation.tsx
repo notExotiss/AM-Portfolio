@@ -3,18 +3,20 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
+import { ResumeModal } from './resume-modal'
 
 const navItems = [
   { name: 'Home', href: '#home' },
   { name: 'About', href: '#about' },
   { name: 'Portfolio', href: '#portfolio' },
-  { name: 'Resume', href: '#resume' },
+  { name: 'Resume', href: '#resume', isModal: true },
   { name: 'Contact', href: '#contact' },
 ]
 
 export default function Navigation() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isResumeModalOpen, setIsResumeModalOpen] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -31,7 +33,12 @@ export default function Navigation() {
     }
   }, [])
 
-  const scrollToSection = (href: string) => {
+  const scrollToSection = (href: string, isModal?: boolean) => {
+    if (isModal) {
+      setIsResumeModalOpen(true)
+      setIsMobileMenuOpen(false)
+      return
+    }
     const element = document.querySelector(href)
     if (element) {
       const yOffset = -80 // Offset for fixed navbar
@@ -47,7 +54,7 @@ export default function Navigation() {
       animate={{ y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <div className="container mx-auto px-6 py-4 flex items-center justify-center">
+      <div className="container mx-auto px-6 py-4 flex items-center justify-center md:justify-center">
         {/* Desktop Navigation - Rounded container around links with liquid glass */}
         <motion.div
           className={`hidden md:flex items-center gap-8 px-8 py-4 rounded-full transition-all duration-300 pointer-events-auto ${
@@ -70,7 +77,7 @@ export default function Navigation() {
               key={item.name}
               onClick={(e) => {
                 e.preventDefault()
-                scrollToSection(item.href)
+                scrollToSection(item.href, item.isModal)
               }}
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group"
               initial={{ opacity: 0, y: -20 }}
@@ -83,9 +90,9 @@ export default function Navigation() {
           ))}
         </motion.div>
 
-        {/* Mobile Menu Button - Rounded with liquid glass */}
+        {/* Mobile Menu Button - Right aligned */}
         <motion.button
-          className="md:hidden text-foreground px-6 py-3 rounded-full transition-all duration-300 pointer-events-auto"
+          className="md:hidden text-foreground px-4 py-2 rounded-full transition-all duration-300 pointer-events-auto ml-auto"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           animate={{
             background: isScrolled 
@@ -106,31 +113,43 @@ export default function Navigation() {
       {/* Mobile Menu */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <motion.div
-            className="md:hidden bg-background/95 backdrop-blur-xl border-t border-border pointer-events-auto"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div className="container mx-auto px-6 py-4 flex flex-col gap-4">
-              {navItems.map((item) => (
+          <>
+            <motion.div
+              className="md:hidden fixed top-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-b border-border pointer-events-auto z-40"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+                <div className="flex flex-col gap-4 flex-1">
+                  {navItems.map((item) => (
+                    <button
+                      key={item.name}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setIsMobileMenuOpen(false)
+                        scrollToSection(item.href, item.isModal)
+                      }}
+                      className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors text-left"
+                    >
+                      {item.name}
+                    </button>
+                  ))}
+                </div>
                 <button
-                  key={item.name}
-                  onClick={(e) => {
-                    e.preventDefault()
-                    setIsMobileMenuOpen(false)
-                    scrollToSection(item.href)
-                  }}
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors text-left"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="p-2 rounded-full hover:bg-secondary/50 transition-colors ml-4"
                 >
-                  {item.name}
+                  <X size={24} className="text-foreground" />
                 </button>
-              ))}
-            </div>
-          </motion.div>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
+
+      <ResumeModal open={isResumeModalOpen} onOpenChange={setIsResumeModalOpen} />
     </motion.nav>
   )
 }

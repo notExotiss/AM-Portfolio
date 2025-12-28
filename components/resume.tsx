@@ -220,59 +220,84 @@ export default function Resume() {
             </div>
           </motion.div>
 
-          {/* Technical Skills */}
+{/* Technical Skills */}
+<motion.div
+  initial={{ opacity: 0, y: 30 }}
+  animate={inView ? { opacity: 1, y: 0 } : {}}
+  transition={{ duration: 0.8, delay: 0.5 }}
+  className="mb-12"
+>
+  <div className="flex items-center gap-4 mb-6">
+    {/* Section Icon: Increased to w-12 */}
+    <Code className="w-12 h-12 text-primary" />
+    <h3 className="text-4xl font-bold font-[var(--font-titillium)]">Technical Skills</h3>
+  </div>
+  
+  <Tilt tiltMaxAngleX={3} tiltMaxAngleY={3} scale={1.01}>
+    <div className="p-6 glass-card rounded-2xl hover:border-primary/50 transition-all relative overflow-hidden group">
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+      />
+      <div className="relative z-10 grid md:grid-cols-2 gap-4">
+        {[
+          { name: 'Python', years: '2021 - Present', level: 95 },
+          { name: 'TypeScript', years: '2023 - Present', level: 85 },
+          { name: 'React', years: '2023 - Present', level: 90 },
+          { name: 'Next.js', years: '2023 - Present', level: 88 },
+          { name: 'Java', years: '2022 - Present', level: 80 },
+          { name: 'HTML/CSS/JS', years: '2022 - Present', level: 92 },
+        ].map((skill, index) => (
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.5 }}
-            className="mb-12"
+            key={skill.name}
+            initial={{ opacity: 0, x: -20 }}
+            animate={inView ? { opacity: 1, x: 0 } : {}}
+            transition={{ delay: 0.6 + index * 0.05 }}
+            /* p-4 remains the same to keep box size identical */
+            className="p-4 glass-card rounded-lg border border-border/50 hover:border-primary/50 transition-all group relative overflow-hidden"
           >
-            <div className="flex items-center gap-3 mb-6">
-              <Code className="w-6 h-6 text-primary" />
-              <h3 className="text-3xl font-bold font-[var(--font-titillium)] font-semibold">Technical Skills</h3>
-            </div>
-            <Tilt tiltMaxAngleX={3} tiltMaxAngleY={3} scale={1.01}>
-              <div className="p-6 glass-card rounded-2xl hover:border-primary/50 transition-all relative overflow-hidden group">
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                />
-                <div className="relative z-10 grid md:grid-cols-2 gap-4">
-                  {[
-                    { name: 'Python', years: '2021 - Present', level: 95 },
-                    { name: 'TypeScript', years: '2023 - Present', level: 85 },
-                    { name: 'React', years: '2023 - Present', level: 90 },
-                    { name: 'Next.js', years: '2023 - Present', level: 88 },
-                    { name: 'Java', years: '2022 - Present', level: 80 },
-                    { name: 'HTML/CSS/JS', years: '2022 - Present', level: 92 },
-                  ].map((skill, index) => (
-                    <motion.div
-                      key={skill.name}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={inView ? { opacity: 1, x: 0 } : {}}
-                      transition={{ delay: 0.6 + index * 0.05 }}
-                      className="p-4 glass-card rounded-lg border border-border/50 hover:border-primary/50 transition-all group relative overflow-hidden"
-                    >
-                      <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="font-semibold font-[var(--font-titillium)] font-semibold">{skill.name}</p>
-                          <span className="text-xs text-muted-foreground font-[var(--font-dm-mono)]">{skill.level}%</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground font-[var(--font-ubuntu)] font-normal mb-2">{skill.years}</p>
-                        <div className="h-1.5 bg-secondary/50 rounded-full overflow-hidden">
-                          <motion.div
-                            className="h-full bg-gradient-to-r from-primary to-accent"
-                            initial={{ width: 0 }}
-                            animate={inView ? { width: `${skill.level}%` } : {}}
-                            transition={{ duration: 1, delay: 0.7 + index * 0.05 }}
-                          />
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-0">
+                <div className="flex items-center gap-3">
+                  {/* Added an icon per skill and made it large */}
+                  <Code className="w-8 h-8 text-primary/70" />
+                  {/* Name: Increased to text-3xl */}
+                  <p className="text-3xl font-black font-[var(--font-titillium)] tracking-tight">
+                    {skill.name}
+                  </p>
                 </div>
+                {/* Percentage: Increased to text-xl */}
+                <span className="text-xl font-bold font-[var(--font-dm-mono)] text-primary">
+                  {skill.level}%
+                </span>
               </div>
-            </Tilt>
+              
+              {/* Years: Increased to text-lg and reduced margin to save box space */}
+              <p className="text-lg text-muted-foreground font-[var(--font-ubuntu)] font-medium mb-3 ml-11">
+                {skill.years}
+              </p>
+              
+              {/* Progress Bar: Increased height to h-4 for a "thicker" look */}
+              <div className="h-4 bg-secondary/50 rounded-full overflow-hidden border border-white/5">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_100%]"
+                  initial={{ width: 0 }}
+                  animate={inView ? { 
+                    width: `${skill.level}%`,
+                    backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] 
+                  } : {}}
+                  transition={{ 
+                    width: { duration: 1, delay: 0.7 + index * 0.05 },
+                    backgroundPosition: { duration: 3, repeat: Infinity, ease: "linear" }
+                  }}
+                />
+              </div>
+            </div>
           </motion.div>
+        ))}
+      </div>
+    </div>
+  </Tilt>
+</motion.div>
 
           {/* Achievements */}
           <motion.div

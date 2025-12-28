@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter, Ubuntu, Titillium_Web, DM_Mono } from 'next/font/google'
+import { Inter, Ubuntu, Titillium_Web, DM_Mono, Space_Grotesk } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/react'
 import { Toaster } from '@/components/ui/toaster'
 import './globals.css'
@@ -28,6 +28,12 @@ const dmMono = DM_Mono({
   variable: '--font-dm-mono',
 });
 
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-space-grotesk',
+});
+
 export const metadata: Metadata = {
   title: 'Aarit\'s Portfolio',
   description: 'High School Student & Developer',
@@ -40,7 +46,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${ubuntu.className} ${inter.variable} ${ubuntu.variable} ${titillium.variable} ${dmMono.variable} antialiased bg-background text-foreground`}>
+      <body className={`${spaceGrotesk.className} ${spaceGrotesk.variable} ${inter.variable} ${ubuntu.variable} ${titillium.variable} ${dmMono.variable} antialiased bg-background text-foreground`}>
         {children}
         <Analytics />
         <Toaster />

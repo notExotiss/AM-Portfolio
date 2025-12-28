@@ -9,7 +9,6 @@ import Background3D from '@/components/background-3d'
 import Hero from '@/components/hero'
 import About from '@/components/about'
 import Portfolio from '@/components/portfolio'
-import Resume from '@/components/resume'
 import Contact from '@/components/contact'
 import Footer from '@/components/footer'
 
@@ -397,7 +396,6 @@ export default function Home() {
       <Hero />
       <About />
       <Portfolio />
-      <Resume />
       <Contact />
       <Footer />
     </main>
