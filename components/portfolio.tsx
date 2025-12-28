@@ -50,24 +50,6 @@ const projects = [
   {
     id: 3,
     number: '03',
-    title: 'LockedIn',
-    description: 'Chrome Extension / Civil Action Project',
-    tech: ['JavaScript', 'HTML', 'CSS', 'Chrome APIs'],
-    images: [
-      { url: '/project3-1.png', note: 'Chrome webstore listing page' },
-      { url: '/project3-2.png', note: 'LockedIn Chrome extension interface with focus features' },
-      { url: '/project3-3.png', note: 'Site blocker and task manager functionality' },
-    ],
-    gradient: 'from-purple-500 to-indigo-500',
-    color: '#8b5cf6',
-    links: {
-      website: 'https://chromewebstore.google.com/detail/lockedin/odkjipklpkbocmkmfnhkkcdmmadbgblp',
-      github: '',
-    },
-  },
-  {
-    id: 4,
-    number: '04',
     title: 'AgriSense',
     description: 'Congressional App Challenge / Fullstack',
     tech: ['React', 'Firebase', 'JavaScript', 'Satellite APIs', 'Arduino'],
@@ -84,8 +66,8 @@ const projects = [
     },
   },
   {
-    id: 5,
-    number: '05',
+    id: 4,
+    number: '04',
     title: 'Back In Time',
     description: 'FBLA Video Game Challenge / Game Development',
     tech: ['C#', 'Unity', 'Aseprite', 'Photoshop'],
