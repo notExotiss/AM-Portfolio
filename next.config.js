@@ -1,13 +1,10 @@
 // next.config.js
 
-module.exports = {
-    images: {
-      domains: ['assets-global.website-files.com'],
-    },
-  };
-  
-  module.exports = {
-    images: {
-      domains: ['assets-global.website-files.com'],
-    },
-  };
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  images: {
+    domains: ['assets-global.website-files.com'],
+  },
+};
+
+module.exports = nextConfig;
