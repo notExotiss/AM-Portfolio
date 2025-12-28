@@ -182,34 +182,29 @@ export default function Portfolio() {
     }
   }, [hoveredId, isMobile])
 
-  // Auto-scroll images for mobile portfolio items
-  useEffect(() => {
-    if (isMobile) {
-      projects.forEach((project) => {
-        if (project.images.length > 1) {
-          if (!mobileProjectImageIndices[project.id]) {
-            setMobileProjectImageIndices((prev) => ({ ...prev, [project.id]: 0 }))
-          }
-          if (mobileImageIntervalRefs.current[project.id]) {
-            clearInterval(mobileImageIntervalRefs.current[project.id])
-          }
-          mobileImageIntervalRefs.current[project.id] = setInterval(() => {
-            setMobileProjectImageIndices((prev) => ({
-              ...prev,
-              [project.id]: (prev[project.id] || 0) === project.images.length - 1 ? 0 : (prev[project.id] || 0) + 1
-            }))
-          }, 3000)
-        }
-      })
-    }
+// Auto-scroll images for mobile portfolio items
+useEffect(() => {
+  // Only run if on mobile and the portfolio section is in view
+  if (!isMobile || !inView) return;
 
-    return () => {
-      Object.values(mobileImageIntervalRefs.current).forEach((interval) => {
-        if (interval) clearInterval(interval)
-      })
-      mobileImageIntervalRefs.current = {}
+  const intervals: Record<number, NodeJS.Timeout> = {};
+
+  projects.forEach((project) => {
+    if (project.images.length > 1) {
+      intervals[project.id] = setInterval(() => {
+        setMobileProjectImageIndices((prev) => ({
+          ...prev,
+          [project.id]: ((prev[project.id] || 0) + 1) % project.images.length,
+        }));
+      }, 3000);
     }
-  }, [inView, isMobile, mobileProjectImageIndices])
+  });
+
+  // Cleanup: clear all intervals when component unmounts or view changes
+  return () => {
+    Object.values(intervals).forEach((interval) => clearInterval(interval));
+  };
+}, [isMobile, inView]); // Removed mobileProjectImageIndices from dependencies
 
   // Track mouse position globally
   useEffect(() => {
