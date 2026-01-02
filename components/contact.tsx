@@ -20,7 +20,8 @@ export default function Contact() {
     <section
       id="contact"
       ref={containerRef}
-      className="relative min-h-screen py-24 flex items-center"
+      className="relative min-h-screen py-32 md:py-24 flex items-center"
+      aria-label="Contact section"
     >
       {/* Enhanced Background Effects */}
       <div className="absolute inset-0 -z-10">
@@ -170,23 +171,25 @@ export default function Contact() {
                         href={social.href}
                         target={social.href.startsWith('http') ? '_blank' : undefined}
                         rel={social.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                        className="p-6 glass-card rounded-2xl hover:border-primary/50 transition-all group relative overflow-hidden block"
+                        className="p-6 glass-card rounded-2xl hover:border-primary/50 transition-all group relative overflow-hidden block focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
                         whileHover={{ y: -5, scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         initial={{ opacity: 0, y: 20 }}
                         animate={inView ? { opacity: 1, y: 0 } : {}}
                         transition={{ delay: 0.6 + index * 0.1 }}
+                        aria-label={`Visit ${social.label}${social.desc ? ` - ${social.desc}` : ''}`}
                       >
                         <motion.div
                           className={`absolute inset-0 bg-gradient-to-br ${social.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}
+                          aria-hidden="true"
                         />
                         <div className="relative z-10">
                           <div className="mb-3">
-                            <social.icon className={`w-8 h-8 ${social.color} group-hover:scale-110 transition-transform`} />
+                            <social.icon className={`w-8 h-8 ${social.color} group-hover:scale-110 transition-transform`} aria-hidden="true" />
                           </div>
                           <div className="font-medium font-[var(--font-space-grotesk)] mb-1">{social.label}</div>
                           <div className="text-sm text-muted-foreground/70 font-[var(--font-space-grotesk)]">{social.desc}</div>
-                          <div className="mt-3 h-0.5 w-0 bg-primary group-hover:w-full transition-all duration-300" />
+                          <div className="mt-3 h-0.5 w-0 bg-primary group-hover:w-full transition-all duration-300" aria-hidden="true" />
                         </div>
                       </motion.a>
                     </Tilt>

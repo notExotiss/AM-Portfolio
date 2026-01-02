@@ -87,24 +87,26 @@ export default function Hero() {
                 href={social.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative p-4 rounded-2xl glass-card hover:border-primary/50 transition-all"
+                className="group relative p-4 rounded-2xl glass-card hover:border-primary/50 transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
                 whileHover={{ scale: 1.1, rotate: 5 }}
                 whileTap={{ scale: 0.95 }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 + index * 0.1 }}
+                aria-label={`Visit ${social.label} profile`}
               >
                 <motion.div
                   whileHover={{ scale: 1.2, rotate: -5 }}
                   transition={{ type: "spring", stiffness: 400, damping: 10 }}
                 >
-                  <social.icon size={24} className="relative z-10" />
+                  <social.icon size={24} className="relative z-10" aria-hidden="true" />
                 </motion.div>
                 <motion.div
                   className={`absolute inset-0 rounded-full bg-gradient-to-br ${social.color} opacity-0 group-hover:opacity-30 blur-xl`}
                   initial={{ scale: 0 }}
                   whileHover={{ scale: 1.5 }}
                   transition={{ duration: 0.3 }}
+                  aria-hidden="true"
                 />
               </motion.a>
             ))}
@@ -113,17 +115,18 @@ export default function Hero() {
           {/* Scroll Indicator */}
           <motion.a
             href="#about"
-            className="flex flex-col items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group"
+            className="flex flex-col items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 1 }}
+            aria-label="Scroll to About section"
           >
             <span className="text-sm font-medium font-[var(--font-space-grotesk)]">Scroll to explore</span>
             <motion.div
               animate={{ y: [0, 8, 0] }}
               transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <ArrowDown size={24} className="group-hover:text-primary transition-colors" />
+              <ArrowDown size={24} className="group-hover:text-primary transition-colors" aria-hidden="true" />
             </motion.div>
           </motion.a>
         </div>

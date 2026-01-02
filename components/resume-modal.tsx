@@ -39,11 +39,12 @@ export function ResumeModal({ open, onOpenChange }: { open: boolean; onOpenChang
             {/* Close Button */}
             <Dialog.Close asChild>
               <motion.button
-                className="absolute top-6 right-6 p-3 rounded-full glass-card hover:border-primary transition-all group z-10"
+                className="absolute top-6 right-6 p-3 rounded-full glass-card hover:border-primary transition-all group z-10 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
                 whileHover={{ scale: 1.1, rotate: 90 }}
                 whileTap={{ scale: 0.9 }}
+                aria-label="Close resume modal"
               >
-                <X size={20} className="group-hover:text-primary transition-colors" />
+                <X size={20} className="group-hover:text-primary transition-colors" aria-hidden="true" />
               </motion.button>
             </Dialog.Close>
 

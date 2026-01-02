@@ -259,7 +259,8 @@ useEffect(() => {
                 <section
                   id="portfolio"
                   ref={containerRef}
-                  className="relative min-h-screen py-24"
+                  className="relative min-h-screen py-32 md:py-24"
+                  aria-label="Portfolio section"
       >
         <div ref={ref} className="container mx-auto px-6">
           <motion.div
@@ -593,11 +594,12 @@ useEffect(() => {
                     {/* Close Button */}
                     <Dialog.Close asChild>
                       <motion.button
-                        className="absolute top-4 right-4 p-3 rounded-full glass-card hover:border-primary transition-all group z-10"
+                        className="absolute top-4 right-4 p-3 rounded-full glass-card hover:border-primary transition-all group z-10 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
                         whileHover={{ scale: 1.1, rotate: 90 }}
                         whileTap={{ scale: 0.9 }}
+                        aria-label="Close project details modal"
                       >
-                        <X size={20} className="group-hover:text-primary transition-colors" />
+                        <X size={20} className="group-hover:text-primary transition-colors" aria-hidden="true" />
                       </motion.button>
                     </Dialog.Close>
                   </div>
@@ -637,11 +639,12 @@ useEffect(() => {
                             href={selectedProject.links.github}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 backdrop-blur-sm border border-border/30 hover:border-primary/50 hover:bg-secondary transition-all group"
+                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 backdrop-blur-sm border border-border/30 hover:border-primary/50 hover:bg-secondary transition-all group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
+                            aria-label={`View ${selectedProject.title} on GitHub`}
                           >
-                            <Code2 size={18} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                            <Code2 size={18} className="text-muted-foreground group-hover:text-primary transition-colors" aria-hidden="true" />
                             <span className="text-sm font-[var(--font-space-grotesk)] text-muted-foreground/80 group-hover:text-primary transition-colors font-medium">GitHub</span>
                           </motion.a>
                         )}
@@ -654,9 +657,10 @@ useEffect(() => {
                                 href={selectedProject.links.website}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 backdrop-blur-sm border border-border/30 hover:border-primary/50 hover:bg-secondary transition-all group relative"
+                                className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 backdrop-blur-sm border border-border/30 hover:border-primary/50 hover:bg-secondary transition-all group relative focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
+                                aria-label={`Visit ${selectedProject.title} website`}
                               >
                                 <div className="relative w-5 h-5 flex items-center justify-center">
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -679,11 +683,12 @@ useEffect(() => {
                                 href={selectedProject.links.website}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 backdrop-blur-sm border border-border/30 hover:border-primary/50 hover:bg-secondary transition-all group"
+                                className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 backdrop-blur-sm border border-border/30 hover:border-primary/50 hover:bg-secondary transition-all group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
+                                aria-label={`Visit ${selectedProject.title} website`}
                               >
-                                <ExternalLink size={18} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                                <ExternalLink size={18} className="text-muted-foreground group-hover:text-primary transition-colors" aria-hidden="true" />
                                 <span className="text-sm font-[var(--font-space-grotesk)] text-muted-foreground/80 group-hover:text-primary transition-colors font-medium">Website</span>
                               </motion.a>
                             )
@@ -699,13 +704,14 @@ useEffect(() => {
                       <motion.button
                         key={`${selectedProject.id}-thumb-${image.url}-${index}`}
                         onClick={() => setCurrentImageIndex(index)}
-                        className={`w-full aspect-video rounded-2xl overflow-hidden border-2 transition-all relative group backdrop-blur-sm ${
+                        className={`w-full aspect-video rounded-2xl overflow-hidden border-2 transition-all relative group backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background ${
                           index === currentImageIndex
                             ? 'border-primary scale-105'
                             : 'border-border/30 hover:border-primary/50'
                         }`}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
+                        aria-label={`View image ${index + 1} of ${selectedProject.images.length}: ${image.note}`}
                       >
                         <Image
                           src={image.url}

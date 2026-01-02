@@ -12,6 +12,27 @@ import Portfolio from '@/components/portfolio'
 import Contact from '@/components/contact'
 import Footer from '@/components/footer'
 
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "Aarit Malhotra",
+  "jobTitle": "High School Student & Developer",
+  "url": "https://aaritmalhotra.vercel.app",
+  "sameAs": [
+    "https://github.com/notExotiss",
+    "https://www.linkedin.com/in/aarit-malhotra-b5198b171/",
+    "http://instagram.com/aaritmalhotra09"
+  ],
+  "email": "iamaaritmalhotra@gmail.com",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Edison",
+    "addressRegion": "NJ",
+    "addressCountry": "US"
+  },
+  "knowsAbout": ["Web Development", "React", "Next.js", "TypeScript", "JavaScript", "Python", "Java", "UI/UX Design"]
+}
+
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true)
   const mainRef = useRef<HTMLElement>(null)
@@ -30,9 +51,10 @@ export default function Home() {
   const parallax7 = useTransform(scrollYProgress, [0, 1], [0, -90])
 
   useEffect(() => {
+    // Reduced pre-loader time for better performance (from 2000ms to 800ms)
     const timer = setTimeout(() => {
       setIsLoading(false)
-    }, 2000)
+    }, 800)
 
     return () => clearTimeout(timer)
   }, [])
@@ -42,6 +64,11 @@ export default function Home() {
   }
 
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
     <main ref={mainRef} className="min-h-screen relative overflow-x-hidden" style={{ overflowY: 'hidden' }}>
       {/* Enhanced Continuous Background with Global Parallax */}
       <div className="fixed inset-0 -z-10 overflow-hidden" style={{ 
@@ -394,10 +421,14 @@ export default function Home() {
       <InteractiveCursor />
       <Navigation />
       <Hero />
+      <section className="py-8 md:py-16" aria-hidden="true" />
       <About />
+      <section className="py-8 md:py-16" aria-hidden="true" />
       <Portfolio />
+      <section className="py-8 md:py-16" aria-hidden="true" />
       <Contact />
       <Footer />
     </main>
+    </>
   )
 }

@@ -35,8 +35,28 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: 'Aarit\'s Portfolio',
-  description: 'High School Student & Developer',
+  title: 'Aarit Malhotra - Portfolio | High School Student & Developer',
+  description: 'Portfolio of Aarit Malhotra – high school student and developer. Explore projects, resume, and contact information. Specializing in web development, React, Next.js, and modern technologies.',
+  keywords: ['Aarit Malhotra', 'portfolio', 'developer', 'web development', 'React', 'Next.js', 'high school student', 'Edison NJ'],
+  authors: [{ name: 'Aarit Malhotra' }],
+  creator: 'Aarit Malhotra',
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://aaritmalhotra.vercel.app',
+    title: 'Aarit Malhotra - Portfolio | High School Student & Developer',
+    description: 'Portfolio of Aarit Malhotra – high school student and developer. Explore projects, resume, and contact information.',
+    siteName: 'Aarit Malhotra Portfolio',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Aarit Malhotra - Portfolio | High School Student & Developer',
+    description: 'Portfolio of Aarit Malhotra – high school student and developer. Explore projects, resume, and contact information.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 }
 
 export default function RootLayout({

@@ -42,7 +42,8 @@ export default function About() {
     <section
       id="about"
       ref={containerRef}
-      className="relative min-h-screen py-24 flex items-center"
+      className="relative min-h-screen py-32 md:py-24 flex items-center"
+      aria-label="About section"
     >
       {/* Enhanced Parallax Background */}
       <motion.div
