@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SAT Testing Embed</title>
+    <style>
+      :root {
+        --bg: #f3f5ff;
+        --card: #ffffff;
+        --text: #111827;
+        --muted: #6b7280;
+        --primary: #314dcc;
+        --accent: #1e1f1b;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Sora", system-ui, -apple-system, Segoe UI, sans-serif;
+        color: var(--text);
+        background: radial-gradient(circle at 30% 20%, #dde7ff 0%, var(--bg) 45%, #eef2ff 100%);
+      }
+
+      .page {
+        max-width: 1100px;
+        margin: 32px auto;
+        padding: 0 16px 40px;
+      }
+
+      .panel {
+        background: var(--card);
+        border-radius: 18px;
+        box-shadow: 0 18px 48px rgba(17, 24, 39, 0.12);
+        padding: 20px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+      }
+
+      .sub {
+        margin: 0 0 16px;
+        color: var(--muted);
+      }
+
+      .config {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(180px, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #374151;
+      }
+
+      input,
+      select {
+        border: 1px solid #d1d5db;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 14px;
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 6px 0 16px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 10px;
+        padding: 10px 14px;
+        background: var(--primary);
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        background: #e5e7eb;
+        color: #111827;
+      }
+
+      #status {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      #sat-testing-slot {
+        min-height: 180px;
+      }
+
+      .note {
+        margin-top: 14px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: #eef2ff;
+        color: #1f2937;
+        font-size: 13px;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+
+      @media (max-width: 840px) {
+        .config {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="panel">
+        <h1>SAT Testing Embed</h1>
+        <p class="sub">This page mounts the testing software into an existing website.</p>
+
+        <div class="config">
+          <div class="field">
+            <label for="baseUrl">Testing Service URL</label>
+            <input id="baseUrl" type="text" value="http://localhost:3000" />
+          </div>
+          <div class="field">
+            <label for="testId">Test ID (Firestore document id)</label>
+            <input id="testId" type="text" placeholder="paste test id here" />
+          </div>
+          <div class="field">
+            <label for="mode">Embed Mode</label>
+            <select id="mode">
+              <option value="modal">Modal</option>
+              <option value="inline">Inline</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="mountBtn" type="button">Mount Testing Widget</button>
+          <button id="unmountBtn" type="button" class="secondary">Unmount</button>
+          <span id="status">Waiting to mount.</span>
+        </div>
+
+        <div id="sat-testing-slot"></div>
+
+        <div class="note">
+          URL params supported: <code>?baseUrl=http://localhost:3000&testId=YOUR_ID&mode=modal</code>
+        </div>
+      </section>
+    </main>
+
+    <script src="./am-testing-embed.js"></script>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const baseUrlInput = document.getElementById("baseUrl");
+      const testIdInput = document.getElementById("testId");
+      const modeInput = document.getElementById("mode");
+      const statusEl = document.getElementById("status");
+      const slot = document.getElementById("sat-testing-slot");
+
+      if (params.get("baseUrl")) baseUrlInput.value = params.get("baseUrl");
+      if (params.get("testId")) testIdInput.value = params.get("testId");
+      if (params.get("mode")) modeInput.value = params.get("mode");
+
+      let widget = null;
+
+      function setStatus(text, isError = false) {
+        statusEl.textContent = text;
+        statusEl.style.color = isError ? "#b91c1c" : "#6b7280";
+      }
+
+      function mountWidget() {
+        const testId = testIdInput.value.trim();
+        const baseUrl = baseUrlInput.value.trim();
+        const mode = modeInput.value;
+
+        if (!testId) {
+          setStatus("Please enter a valid testId before mounting.", true);
+          return;
+        }
+
+        if (!baseUrl) {
+          setStatus("Please enter a valid baseUrl before mounting.", true);
+          return;
+        }
+
+        try {
+          widget = AMTestingEmbed.mount(slot, {
+            baseUrl,
+            flow: "test",
+            testId,
+            mode,
+            launchText: "Start SAT Practice",
+            title: "SAT Practice Session",
+            height: "820px",
+            theme: {
+              primaryColor: "#314dcc",
+              accentColor: "#1e1f1b",
+              borderRadius: "16px",
+              fontFamily: "Sora, system-ui, sans-serif",
+            },
+            events: {
+              onReady: () => setStatus("Widget ready."),
+              onComplete: (payload) => {
+                console.log("complete", payload);
+                setStatus("Test completed.");
+              },
+              onError: (payload) => {
+                console.error("embed error", payload);
+                setStatus("Embed reported an error. Check console.", true);
+              },
+            },
+          });
+          setStatus("Widget mounted.");
+        } catch (error) {
+          console.error(error);
+          setStatus("Failed to mount widget. Check console.", true);
+        }
+      }
+
+      function unmountWidget() {
+        try {
+          AMTestingEmbed.unmount(slot);
+          widget = null;
+          setStatus("Widget unmounted.");
+        } catch (error) {
+          console.error(error);
+          setStatus("Failed to unmount widget.", true);
+        }
+      }
+
+      document.getElementById("mountBtn").addEventListener("click", mountWidget);
+      document.getElementById("unmountBtn").addEventListener("click", unmountWidget);
+
+      if (testIdInput.value.trim()) {
+        mountWidget();
+      }
+    </script>
+  </body>
+</html>
