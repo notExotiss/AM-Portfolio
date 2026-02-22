@@ -6,7 +6,7 @@
   var DEFAULTS = {
     baseUrl: "",
     flow: "test",
-    testId: "",
+    testId: "GEGqdS738cCTAoyCQcHd",
     assignmentId: "",
     endpoint: "",
     mode: "inline",
