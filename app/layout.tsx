@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter, Ubuntu, Titillium_Web, DM_Mono, Space_Grotesk } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/react'
+import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from '@/components/ui/toaster'
 import './globals.css'
 
