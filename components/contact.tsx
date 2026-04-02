@@ -1,204 +1,304 @@
 'use client'
 
-import { useRef } from 'react'
-import { motion, useScroll, useTransform } from 'framer-motion'
-import { useInView } from 'react-intersection-observer'
-import { Mail, Linkedin, Instagram, Github, MapPin, Phone } from 'lucide-react'
-import Tilt from 'react-parallax-tilt'
+import { useRef, useCallback } from 'react'
+import type { PointerEvent as ReactPointerEvent } from 'react'
+import { ArrowUpRight, Github, Instagram, Linkedin } from 'lucide-react'
+import RollingText from './rolling-text'
+import { gsap, useIsomorphicLayoutEffect } from '@/lib/gsap'
+
+const socialLinks = [
+  {
+    href: 'https://github.com/notExotiss/',
+    icon: Github,
+    label: 'GitHub',
+  },
+  {
+    href: 'https://www.linkedin.com/in/aarit-malhotra-b5198b171/',
+    icon: Linkedin,
+    label: 'LinkedIn',
+  },
+  {
+    href: 'http://instagram.com/aaritmalhotra09',
+    icon: Instagram,
+    label: 'Instagram',
+  },
+]
+
+/* floating accent particles for the contact bg */
+const CONTACT_PARTICLES = Array.from({ length: 12 }, (_, i) => ({
+  id: i,
+  x: 10 + Math.random() * 80,
+  y: 10 + Math.random() * 80,
+  size: 2 + Math.random() * 3,
+  duration: 10 + Math.random() * 15,
+  delay: Math.random() * -10,
+}))
 
 export default function Contact() {
-  const { ref, inView } = useInView({ threshold: 0.1, triggerOnce: true })
-  const containerRef = useRef<HTMLDivElement>(null)
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ['start end', 'end start'],
-  })
+  const sectionRef = useRef<HTMLElement>(null)
+  const socialRefs = useRef<(HTMLAnchorElement | null)[]>([])
 
-  const parallaxY = useTransform(scrollYProgress, [0, 1], [-30, 30])
+  /* ── springy magnetic hover on social links ── */
+  const handleMagnetic = useCallback(
+    (e: ReactPointerEvent<HTMLAnchorElement>, idx: number) => {
+      const el = socialRefs.current[idx]
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const cx = rect.left + rect.width / 2
+      const cy = rect.top + rect.height / 2
+      const dx = (e.clientX - cx) * 0.25
+      const dy = (e.clientY - cy) * 0.25
+      gsap.to(el, { x: dx, y: dy, scale: 1.08, duration: 0.4, ease: 'power3.out' })
+    },
+    []
+  )
+
+  const resetMagnetic = useCallback((idx: number) => {
+    const el = socialRefs.current[idx]
+    if (!el) return
+    gsap.to(el, { x: 0, y: 0, scale: 1, duration: 0.7, ease: 'elastic.out(1, 0.4)' })
+  }, [])
+
+  useIsomorphicLayoutEffect(() => {
+    const section = sectionRef.current
+    if (!section) {
+      return
+    }
+
+    const ctx = gsap.context(() => {
+      /* ── staggered reveal with bounce ── */
+      gsap.fromTo(
+        '[data-contact-reveal]',
+        {
+          y: 60,
+          autoAlpha: 0,
+        },
+        {
+          y: 0,
+          autoAlpha: 1,
+          duration: 1,
+          stagger: 0.08,
+          ease: 'back.out(1.4)',
+          scrollTrigger: {
+            trigger: section,
+            start: 'top 74%',
+          },
+        }
+      )
+
+      /* ── panel parallax ── */
+      gsap.to('[data-contact-panel]', {
+        yPercent: -8,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: section,
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: true,
+        },
+      })
+
+      /* ── title parallax (Lando style) ── */
+      gsap.to('[data-contact-title]', {
+        yPercent: -20,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: section,
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 0.8,
+        },
+      })
+
+      /* ── floating particles ── */
+      const particles = gsap.utils.toArray<HTMLElement>('[data-contact-particle]')
+      particles.forEach((p: HTMLElement, i: number) => {
+        gsap.to(p, {
+          y: `random(-25, 25)`,
+          x: `random(-15, 15)`,
+          duration: 5 + i * 0.8,
+          ease: 'sine.inOut',
+          repeat: -1,
+          yoyo: true,
+          delay: i * 0.3,
+        })
+      })
+
+      /* ── grid lines parallax ── */
+      gsap.to('[data-contact-grid]', {
+        yPercent: -20,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: section,
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: true,
+        },
+      })
+    }, section)
+
+    return () => {
+      ctx.revert()
+    }
+  }, [])
 
   return (
     <section
       id="contact"
-      ref={containerRef}
-      className="relative min-h-screen py-32 md:py-24 flex items-center"
-      aria-label="Contact section"
+      ref={sectionRef}
+      className="contact-stage relative overflow-hidden scroll-mt-28 pb-16 pt-22 sm:pb-20 sm:pt-24"
     >
-      {/* Enhanced Background Effects */}
-      <div className="absolute inset-0 -z-10">
-        <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl"
-          animate={{
-            scale: [1, 1.3, 1],
-            rotate: [0, 90, 0],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: 'easeInOut',
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,8,12,0.16),rgba(6,8,12,0.02)_24%,rgba(6,8,12,0.54)),radial-gradient(circle_at_18%_22%,rgba(103,221,255,0.12),transparent_18%),radial-gradient(circle_at_82%_74%,rgba(255,138,91,0.14),transparent_24%)]" />
+      <div data-contact-grid className="contact-grid-lines" aria-hidden="true" />
+
+      {/* floating accent particles */}
+      {CONTACT_PARTICLES.map((p) => (
+        <div
+          key={`contact-particle-${p.id}`}
+          data-contact-particle
+          className="absolute rounded-full pointer-events-none z-[1]"
+          aria-hidden="true"
+          style={{
+            left: `${p.x}%`,
+            top: `${p.y}%`,
+            width: `${p.size}px`,
+            height: `${p.size}px`,
+            background: p.id % 2 === 0 ? 'var(--accent-cool)' : 'var(--accent-warm)',
+            opacity: 0.2,
+            filter: 'blur(1px)',
+            animation: `float-soft-a ${p.duration}s ease-in-out ${p.delay}s infinite`,
           }}
         />
-        <div className="pattern-grid opacity-10" />
-      </div>
+      ))}
 
-      <div ref={ref} className="container mx-auto px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8 }}
-          className=""
-          style={{ y: parallaxY }}
+      <div className="section-frame relative z-10">
+        <div
+          data-contact-panel
+          className="cutout-stage border border-white/10 bg-[linear-gradient(180deg,rgba(8,12,18,0.94),rgba(7,9,14,0.98))] px-6 py-8 sm:px-8 sm:py-10 xl:px-10"
+          style={{
+            clipPath:
+              'polygon(0 0, calc(100% - 60px) 0, 100% 54px, 100% 100%, 0 100%)',
+          }}
         >
-            <motion.h2
-              className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 md:mb-8 text-left font-[var(--font-titillium)] tracking-tight"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={inView ? { opacity: 1, scale: 1 } : {}}
-              transition={{ duration: 0.6 }}
-              style={{
-                backgroundImage: 'linear-gradient(135deg, #3b82f6, #ef4444)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
-            >
-              Get In Touch
-            </motion.h2>
-          <p className="text-left text-base md:text-lg text-muted-foreground/80 mb-12 md:mb-16 max-w-2xl font-[var(--font-space-grotesk)] leading-relaxed">
-            Let&#39;s connect and discuss opportunities or collaborations
-          </p>
+          <div className="grid gap-10 xl:grid-cols-[1.04fr_0.96fr] xl:items-end">
+            <div>
+              <p
+                data-contact-reveal
+                className="eyebrow mb-5 text-[var(--accent-cool)]"
+              >
+                Contact
+              </p>
+              <h2
+                data-contact-reveal
+                data-contact-title
+                className="max-w-[8ch] text-[clamp(3.4rem,8vw,7rem)] leading-[0.9] tracking-[-0.07em] text-[#f7f2e8]"
+              >
+                Want to build something fun, useful, or both?
+              </h2>
+              <p
+                data-contact-reveal
+                className="mt-6 max-w-[39rem] text-base leading-relaxed text-[#ddd6ca] sm:text-lg"
+              >
+                If you want to talk about a project, competition idea, design
+                pass, or something weird on the web, send me a message. I like
+                building things that actually have some personality.
+              </p>
 
-          <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-            {/* Contact Info */}
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              animate={inView ? { opacity: 1, x: 0 } : {}}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="space-y-6"
-            >
-              <Tilt tiltMaxAngleX={5} tiltMaxAngleY={5} scale={1.02}>
-                <motion.div
-                  className="p-6 md:p-8 bg-card/50 backdrop-blur-sm border border-border/50 rounded-3xl hover:border-primary transition-all relative overflow-hidden group"
-                  whileHover={{ y: -5 }}
+              <div
+                data-contact-reveal
+                className="mt-8 flex flex-col gap-4 sm:flex-row sm:flex-wrap"
+              >
+                <a
+                  href="mailto:iamaaritmalhotra@gmail.com"
+                  data-cursor="hover"
+                  data-cursor-label="email"
+                  className="interactive-hit group primary-button inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold"
                 >
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                  />
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-4 mb-2">
-                      <Mail className="w-6 h-6 text-primary" />
-                      <h3 className="text-xl font-bold font-[var(--font-titillium)] tracking-tight">Email</h3>
-                    </div>
-                    <a
-                      href="mailto:iamaaritmalhotra@gmail.com"
-                      className="text-muted-foreground/80 hover:text-primary transition-colors block mb-1 font-[var(--font-space-grotesk)]"
-                    >
-                      iamaaritmalhotra@gmail.com
-                    </a>
-                    <a
-                      href="mailto:3017942@edison.k12.nj.us"
-                      className="text-muted-foreground hover:text-primary transition-colors block font-[var(--font-ubuntu)] font-normal"
-                    >
-                      3017942@edison.k12.nj.us
-                    </a>
-                  </div>
-                </motion.div>
-              </Tilt>
-
-              <Tilt tiltMaxAngleX={5} tiltMaxAngleY={5} scale={1.02}>
-                <motion.div
-                  className="p-6 md:p-8 bg-card/50 backdrop-blur-sm border border-border/50 rounded-3xl hover:border-primary transition-all relative overflow-hidden group"
-                  whileHover={{ y: -5 }}
+                  <RollingText text="Email me" />
+                  <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:rotate-45" />
+                </a>
+                <button
+                  type="button"
+                  data-cursor="hover"
+                  data-cursor-label="resume"
+                  onClick={() => {
+                    document.dispatchEvent(new CustomEvent('open-resume'))
+                  }}
+                  className="interactive-hit group ghost-button inline-flex items-center justify-center rounded-full px-6 py-3.5 text-sm font-semibold"
                 >
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                  />
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-4 mb-2">
-                      <Phone className="w-6 h-6 text-primary" />
-                      <h3 className="text-xl font-bold font-[var(--font-titillium)] tracking-tight">Phone</h3>
-                    </div>
-                    <a
-                      href="tel:18482090996"
-                      className="text-muted-foreground/80 hover:text-primary transition-colors font-[var(--font-space-grotesk)]"
-                    >
-                      (848) 209-0996
-                    </a>
-                  </div>
-                </motion.div>
-              </Tilt>
+                  <RollingText text="Open resume" />
+                </button>
+              </div>
+            </div>
 
-              <Tilt tiltMaxAngleX={5} tiltMaxAngleY={5} scale={1.02}>
-                <motion.div
-                  className="p-6 md:p-8 bg-card/50 backdrop-blur-sm border border-border/50 rounded-3xl hover:border-primary transition-all relative overflow-hidden group"
-                  whileHover={{ y: -5 }}
+            <div className="grid gap-6">
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div
+                  data-contact-reveal
+                  className="cutout-stage border border-white/10 bg-white/[0.035] px-5 py-5"
+                  style={{
+                    clipPath:
+                      'polygon(0 0, calc(100% - 36px) 0, 100% 32px, 100% 100%, 0 100%)',
+                  }}
                 >
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                  />
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-4 mb-2">
-                      <MapPin className="w-6 h-6 text-primary" />
-                      <h3 className="text-xl font-bold font-[var(--font-titillium)] tracking-tight">Location</h3>
-                    </div>
-                    <p className="text-muted-foreground/80 font-[var(--font-space-grotesk)]">
-                      Edison, New Jersey
-                    </p>
-                  </div>
-                </motion.div>
-              </Tilt>
-            </motion.div>
-
-            {/* Social Links */}
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              animate={inView ? { opacity: 1, x: 0 } : {}}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="space-y-6"
-            >
-              <div className="p-6 md:p-8 glass-card rounded-3xl">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="w-1 h-8 bg-gradient-to-b from-primary to-accent rounded-full" />
-                  <h3 className="text-xl md:text-2xl font-bold font-[var(--font-titillium)] tracking-tight">Connect With Me</h3>
+                  <p className="eyebrow mb-3 text-[var(--accent-warm)]">Email</p>
+                  <a
+                    href="mailto:iamaaritmalhotra@gmail.com"
+                    data-cursor="hover"
+                    data-cursor-label="write"
+                    className="text-[1.08rem] leading-relaxed text-[#f7f2e8] hover:text-[var(--accent-cool)] transition-colors duration-300"
+                  >
+                    iamaaritmalhotra@gmail.com
+                  </a>
                 </div>
-                <div className="grid grid-cols-2 gap-5">
-                  {[
-                    { icon: Linkedin, href: 'https://www.linkedin.com/in/aarit-malhotra-b5198b171/', label: 'LinkedIn', desc: 'Professional Network', gradient: 'from-blue-500/20 to-blue-600/20', color: 'text-blue-400' },
-                    { icon: Instagram, href: 'http://instagram.com/aaritmalhotra09', label: 'Instagram', desc: '@aaritmalhotra09', gradient: 'from-pink-500/20 to-purple-500/20', color: 'text-pink-400' },
-                    { icon: Github, href: 'https://github.com/notExotiss/', label: 'GitHub', desc: 'Code & Projects', gradient: 'from-gray-500/20 to-gray-600/20', color: 'text-gray-400' },
-                    { icon: Mail, href: 'mailto:iamaaritmalhotra@gmail.com', label: 'Email', desc: 'Direct Message', gradient: 'from-red-500/20 to-orange-500/20', color: 'text-red-400' },
-                  ].map((social, index) => (
-                    <Tilt key={social.label} tiltMaxAngleX={10} tiltMaxAngleY={10} scale={1.05}>
-                      <motion.a
-                        href={social.href}
-                        target={social.href.startsWith('http') ? '_blank' : undefined}
-                        rel={social.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                        className="p-6 glass-card rounded-2xl hover:border-primary/50 transition-all group relative overflow-hidden block focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
-                        whileHover={{ y: -5, scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={inView ? { opacity: 1, y: 0 } : {}}
-                        transition={{ delay: 0.6 + index * 0.1 }}
-                        aria-label={`Visit ${social.label}${social.desc ? ` - ${social.desc}` : ''}`}
-                      >
-                        <motion.div
-                          className={`absolute inset-0 bg-gradient-to-br ${social.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}
-                          aria-hidden="true"
-                        />
-                        <div className="relative z-10">
-                          <div className="mb-3">
-                            <social.icon className={`w-8 h-8 ${social.color} group-hover:scale-110 transition-transform`} aria-hidden="true" />
-                          </div>
-                          <div className="font-medium font-[var(--font-space-grotesk)] mb-1">{social.label}</div>
-                          <div className="text-sm text-muted-foreground/70 font-[var(--font-space-grotesk)]">{social.desc}</div>
-                          <div className="mt-3 h-0.5 w-0 bg-primary group-hover:w-full transition-all duration-300" aria-hidden="true" />
-                        </div>
-                      </motion.a>
-                    </Tilt>
+
+                <div
+                  data-contact-reveal
+                  className="cutout-stage border border-white/10 bg-white/[0.035] px-5 py-5"
+                  style={{
+                    clipPath:
+                      'polygon(0 0, 100% 0, 100% calc(100% - 34px), calc(100% - 44px) 100%, 0 100%)',
+                  }}
+                >
+                  <p className="eyebrow mb-3 text-[var(--accent-gold)]">Based in</p>
+                  <p className="text-[1.08rem] leading-relaxed text-[#f7f2e8]">
+                    Edison, New Jersey
+                  </p>
+                </div>
+              </div>
+
+              <div
+                data-contact-reveal
+                className="cutout-stage border border-white/10 bg-white/[0.035] px-5 py-5"
+                style={{
+                  clipPath:
+                    'polygon(0 0, calc(100% - 42px) 0, 100% 36px, 100% 100%, 0 100%)',
+                }}
+              >
+                <p className="eyebrow mb-4 text-[var(--accent-cool)]">Elsewhere</p>
+                <div className="flex flex-wrap gap-3">
+                  {socialLinks.map((social, idx) => (
+                    <a
+                      key={social.label}
+                      ref={(el) => { socialRefs.current[idx] = el }}
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-cursor="hover"
+                      data-cursor-label={social.label.toLowerCase()}
+                      onPointerMove={(e) => handleMagnetic(e, idx)}
+                      onPointerLeave={() => resetMagnetic(idx)}
+                      className="interactive-hit group ghost-button inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium text-[#ddd6ca] will-change-transform"
+                    >
+                      <social.icon className="h-4 w-4 transition-transform duration-300 group-hover:scale-125" />
+                      <RollingText text={social.label} />
+                    </a>
                   ))}
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   )

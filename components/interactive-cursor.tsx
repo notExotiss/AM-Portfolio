@@ -1,221 +1,193 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { motion, useMotionValue, useSpring } from 'framer-motion'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { gsap } from '@/lib/gsap'
+
+type CursorMode = 'default' | 'interactive'
 
 export default function InteractiveCursor() {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
-  const [isHovering, setIsHovering] = useState(false)
-  const [isClicking, setIsClicking] = useState(false)
-  const [cursorVariant, setCursorVariant] = useState('default')
-  const [isMobile, setIsMobile] = useState(false)
+  const ringRef = useRef<HTMLDivElement>(null)
+  const dotRef = useRef<HTMLDivElement>(null)
+  const trail1Ref = useRef<HTMLDivElement>(null)
+  const trail2Ref = useRef<HTMLDivElement>(null)
+  const trail3Ref = useRef<HTMLDivElement>(null)
+  const [enabled, setEnabled] = useState(false)
+  const [mode, setMode] = useState<CursorMode>('default')
+  const [isPressed, setIsPressed] = useState(false)
 
-  const cursorX = useMotionValue(-100)
-  const cursorY = useMotionValue(-100)
+  const scale = useMemo(() => {
+    if (mode === 'interactive') {
+      return 2
+    }
 
-  // Much tighter spring for immediate response
-  const springConfig = { damping: 35, stiffness: 2000, mass: 0.1 }
-  const cursorXSpring = useSpring(cursorX, springConfig)
-  const cursorYSpring = useSpring(cursorY, springConfig)
+    return isPressed ? 0.84 : 1
+  }, [isPressed, mode])
 
-  // Check if mobile
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window)
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
+    const media =
+      typeof window !== 'undefined'
+        ? window.matchMedia('(pointer: fine)')
+        : null
+
+    const syncEnabled = () => setEnabled(Boolean(media?.matches))
+    syncEnabled()
+    media?.addEventListener('change', syncEnabled)
+
+    return () => {
+      media?.removeEventListener('change', syncEnabled)
+    }
   }, [])
 
   useEffect(() => {
-    // Don't set up cursor on mobile
-    if (isMobile) return
-    
-    let rafId: number
-    const handleMouseMove = (e: MouseEvent) => {
-      // Use requestAnimationFrame for smoother, frame-synced updates
-      if (rafId) cancelAnimationFrame(rafId)
-      rafId = requestAnimationFrame(() => {
-        cursorX.set(e.clientX)
-        cursorY.set(e.clientY)
-        setMousePosition({ x: e.clientX, y: e.clientY })
-      })
+    if (!enabled || !ringRef.current || !dotRef.current) {
+      document.body.classList.remove('custom-cursor-enabled')
+      return
     }
 
-    const handleMouseDown = () => setIsClicking(true)
-    const handleMouseUp = () => setIsClicking(false)
+    document.body.classList.add('custom-cursor-enabled')
 
-    const handleMouseEnter = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (target.tagName === 'A' || target.tagName === 'BUTTON' || target.closest('a, button')) {
-        setIsHovering(true)
-        setCursorVariant('hover')
-      } else {
-        setIsHovering(false)
-        setCursorVariant('default')
-      }
+    const ring = ringRef.current
+    const dot = dotRef.current
+    const t1 = trail1Ref.current
+    const t2 = trail2Ref.current
+    const t3 = trail3Ref.current
+
+    const ringX = gsap.quickTo(ring, 'x', { duration: 0.16, ease: 'power3.out' })
+    const ringY = gsap.quickTo(ring, 'y', { duration: 0.16, ease: 'power3.out' })
+    const dotX = gsap.quickTo(dot, 'x', { duration: 0.08, ease: 'power2.out' })
+    const dotY = gsap.quickTo(dot, 'y', { duration: 0.08, ease: 'power2.out' })
+
+    /* trail quickTo — increasingly delayed */
+    const t1X = t1 ? gsap.quickTo(t1, 'x', { duration: 0.28, ease: 'power3.out' }) : null
+    const t1Y = t1 ? gsap.quickTo(t1, 'y', { duration: 0.28, ease: 'power3.out' }) : null
+    const t2X = t2 ? gsap.quickTo(t2, 'x', { duration: 0.4, ease: 'power3.out' }) : null
+    const t2Y = t2 ? gsap.quickTo(t2, 'y', { duration: 0.4, ease: 'power3.out' }) : null
+    const t3X = t3 ? gsap.quickTo(t3, 'x', { duration: 0.55, ease: 'power3.out' }) : null
+    const t3Y = t3 ? gsap.quickTo(t3, 'y', { duration: 0.55, ease: 'power3.out' }) : null
+
+    const resolveMode = (target: EventTarget | null) => {
+      const element = target instanceof HTMLElement ? target : null
+      const interactive = element?.closest<HTMLElement>(
+        '[data-cursor="hover"], a, button, [role="button"]'
+      )
+      setMode(interactive ? 'interactive' : 'default')
     }
 
-    const handleMouseLeave = () => {
-      setIsHovering(false)
-      setCursorVariant('default')
+    const handlePointerMove = (event: PointerEvent) => {
+      ringX(event.clientX)
+      ringY(event.clientY)
+      dotX(event.clientX)
+      dotY(event.clientY)
+      t1X?.(event.clientX)
+      t1Y?.(event.clientY)
+      t2X?.(event.clientX)
+      t2Y?.(event.clientY)
+      t3X?.(event.clientX)
+      t3Y?.(event.clientY)
     }
 
-    // Add hover detection for interactive elements
-    const interactiveElements = document.querySelectorAll('a, button, [role="button"], .cursor-pointer')
-    interactiveElements.forEach((el) => {
-      el.addEventListener('mouseenter', handleMouseEnter as EventListener)
-      el.addEventListener('mouseleave', handleMouseLeave)
-    })
+    const handlePointerDown = () => setIsPressed(true)
+    const handlePointerUp = () => setIsPressed(false)
+    const handlePointerOver = (event: PointerEvent) => resolveMode(event.target)
+    const handlePointerOut = (event: PointerEvent) => resolveMode(event.relatedTarget)
 
-    window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('mousedown', handleMouseDown)
-    window.addEventListener('mouseup', handleMouseUp)
+    window.addEventListener('pointermove', handlePointerMove, { passive: true })
+    window.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('pointerup', handlePointerUp)
+    document.addEventListener('pointerover', handlePointerOver)
+    document.addEventListener('pointerout', handlePointerOut)
 
     return () => {
-      if (rafId) cancelAnimationFrame(rafId)
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('mousedown', handleMouseDown)
-      window.removeEventListener('mouseup', handleMouseUp)
-      interactiveElements.forEach((el) => {
-        el.removeEventListener('mouseenter', handleMouseEnter as EventListener)
-        el.removeEventListener('mouseleave', handleMouseLeave)
-      })
+      document.body.classList.remove('custom-cursor-enabled')
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('pointerup', handlePointerUp)
+      document.removeEventListener('pointerover', handlePointerOver)
+      document.removeEventListener('pointerout', handlePointerOut)
     }
-  }, [cursorX, cursorY, isMobile])
+  }, [enabled])
 
-  // Hide cursor on portfolio hover
-  const isPortfolioHover = cursorVariant === 'hidden'
-  
-  // Hide cursor when hovering over portfolio items
   useEffect(() => {
-    const portfolioItems = document.querySelectorAll('[data-portfolio-item]')
-    const handlePortfolioEnter = () => {
-      setIsHovering(true)
-      setCursorVariant('hidden')
+    if (!ringRef.current || !dotRef.current) {
+      return
     }
-    const handlePortfolioLeave = () => {
-      setIsHovering(false)
-      setCursorVariant('default')
-    }
-    
-    portfolioItems.forEach((item) => {
-      item.addEventListener('mouseenter', handlePortfolioEnter)
-      item.addEventListener('mouseleave', handlePortfolioLeave)
-    })
-    
-    return () => {
-      portfolioItems.forEach((item) => {
-        item.removeEventListener('mouseenter', handlePortfolioEnter)
-        item.removeEventListener('mouseleave', handlePortfolioLeave)
-      })
-    }
-  }, [])
 
-  // Don't render cursor on mobile
-  if (isMobile) return null
+    gsap.to(ringRef.current, {
+      scale,
+      opacity: mode === 'interactive' ? 0.6 : 0.82,
+      borderColor: mode === 'interactive' ? 'rgba(143,229,255,0.5)' : 'rgba(251,245,234,0.66)',
+      duration: 0.3,
+      ease: 'elastic.out(1, 0.5)',
+    })
+
+    gsap.to(dotRef.current, {
+      scale: isPressed ? 0.72 : 1,
+      opacity: mode === 'interactive' ? 0.92 : 1,
+      duration: 0.12,
+      ease: 'power2.out',
+    })
+
+    /* trails fade during interactive mode */
+    const trails = [trail1Ref.current, trail2Ref.current, trail3Ref.current]
+    trails.forEach((t) => {
+      if (!t) return
+      gsap.to(t, {
+        scale: mode === 'interactive' ? 1.8 : 1,
+        opacity: mode === 'interactive' ? 0.15 : 0.25,
+        duration: 0.3,
+        ease: 'power2.out',
+      })
+    })
+  }, [isPressed, mode, scale])
+
+  if (!enabled) {
+    return null
+  }
 
   return (
     <>
-      {/* Main cursor dot */}
-      {!isPortfolioHover && (
-        <motion.div
-          className="fixed top-0 left-0 w-3 h-3 rounded-full bg-primary pointer-events-none z-[9999] mix-blend-difference"
-          style={{
-            x: cursorXSpring,
-            y: cursorYSpring,
-            translateX: '-50%',
-            translateY: '-50%',
-          }}
-        />
-      )}
-
-      {/* Outer ring */}
-      {!isPortfolioHover && (
-        <motion.div
-          className="fixed top-0 left-0 w-8 h-8 rounded-full border-2 border-primary/50 pointer-events-none z-[9998]"
-          style={{
-            x: cursorXSpring,
-            y: cursorYSpring,
-            translateX: '-50%',
-            translateY: '-50%',
-          }}
-          animate={{
-            scale: isHovering ? 2 : isClicking ? 0.8 : 1,
-            opacity: isHovering ? 0.8 : isClicking ? 0.6 : 0.4,
-          }}
-          transition={{
-            type: 'tween',
-            duration: 0.2,
-            ease: 'easeOut',
-          }}
-        />
-      )}
-
-      {/* Hover effect ring */}
-      {isHovering && !isPortfolioHover && (
-        <motion.div
-          className="fixed top-0 left-0 w-20 h-20 rounded-full border-2 border-primary pointer-events-none z-[9997]"
-          style={{
-            x: cursorXSpring,
-            y: cursorYSpring,
-            translateX: '-50%',
-            translateY: '-50%',
-          }}
-          animate={{
-            scale: [1, 1.5, 1],
-            opacity: [0.5, 0, 0.5],
-          }}
-          transition={{
-            duration: 1.5,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        />
-      )}
-
-      {/* Click ripple effect */}
-      {isClicking && !isPortfolioHover && (
-        <motion.div
-          className="fixed top-0 left-0 w-16 h-16 rounded-full border-2 border-primary pointer-events-none z-[9996]"
-          style={{
-            x: cursorXSpring,
-            y: cursorYSpring,
-            translateX: '-50%',
-            translateY: '-50%',
-          }}
-          initial={{ scale: 0, opacity: 0.8 }}
-          animate={{ scale: 2, opacity: 0 }}
-          transition={{ duration: 0.4 }}
-        />
-      )}
-
-      {/* Trailing particles */}
-      {!isPortfolioHover && (
-        <div className="fixed top-0 left-0 pointer-events-none z-[9995]">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-1 h-1 rounded-full bg-primary/30"
-              style={{
-                x: cursorXSpring,
-                y: cursorYSpring,
-                translateX: '-50%',
-                translateY: '-50%',
-              }}
-              animate={{
-                scale: [0, 1, 0],
-                opacity: [0, 0.6, 0],
-              }}
-              transition={{
-                duration: 1,
-                repeat: Infinity,
-                delay: i * 0.1,
-                ease: 'easeOut',
-              }}
-            />
-          ))}
-        </div>
-      )}
+      {/* Trail rings — ghost effect on fast movement */}
+      <div
+        ref={trail3Ref}
+        aria-hidden="true"
+        data-html2canvas-ignore="true"
+        className="pointer-events-none fixed left-0 top-0 z-[101] h-5 w-5 rounded-full border border-[rgba(251,245,234,0.12)] mix-blend-difference will-change-transform"
+        style={{ transform: 'translate(-50%, -50%)' }}
+      />
+      <div
+        ref={trail2Ref}
+        aria-hidden="true"
+        data-html2canvas-ignore="true"
+        className="pointer-events-none fixed left-0 top-0 z-[102] h-4 w-4 rounded-full border border-[rgba(251,245,234,0.18)] mix-blend-difference will-change-transform"
+        style={{ transform: 'translate(-50%, -50%)' }}
+      />
+      <div
+        ref={trail1Ref}
+        aria-hidden="true"
+        data-html2canvas-ignore="true"
+        className="pointer-events-none fixed left-0 top-0 z-[103] h-5 w-5 rounded-full border border-[rgba(251,245,234,0.28)] mix-blend-difference will-change-transform"
+        style={{ transform: 'translate(-50%, -50%)' }}
+      />
+      {/* Main ring */}
+      <div
+        ref={ringRef}
+        aria-hidden="true"
+        data-html2canvas-ignore="true"
+        className="pointer-events-none fixed left-0 top-0 z-[104] h-7 w-7 rounded-full border border-[rgba(251,245,234,0.66)] mix-blend-difference will-change-transform"
+        style={{
+          transform: 'translate(-50%, -50%)',
+        }}
+      />
+      {/* Center dot */}
+      <div
+        ref={dotRef}
+        aria-hidden="true"
+        data-html2canvas-ignore="true"
+        className="pointer-events-none fixed left-0 top-0 z-[105] h-[0.36rem] w-[0.36rem] rounded-full bg-[#fbf5ea] mix-blend-difference will-change-transform"
+        style={{
+          transform: 'translate(-50%, -50%)',
+        }}
+      />
     </>
   )
 }

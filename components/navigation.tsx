@@ -1,160 +1,212 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
+import RollingText from './rolling-text'
 import { ResumeModal } from './resume-modal'
 
 const navItems = [
   { name: 'Home', href: '#home' },
   { name: 'About', href: '#about' },
-  { name: 'Portfolio', href: '#portfolio' },
+  { name: 'Work', href: '#portfolio' },
   { name: 'Resume', href: '#resume', isModal: true },
   { name: 'Contact', href: '#contact' },
 ]
 
 export default function Navigation() {
-  const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isResumeModalOpen, setIsResumeModalOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
+  const [activeSection, setActiveSection] = useState('#home')
+
+  const sectionIds = useMemo(
+    () => navItems.filter((item) => !item.isModal).map((item) => item.href),
+    []
+  )
 
   useEffect(() => {
     const handleScroll = () => {
-      const scrollY = window.scrollY || document.documentElement.scrollTop || 0
-      setIsScrolled(scrollY > 50)
+      setIsScrolled(window.scrollY > 32)
+
+      const midpoint = window.scrollY + window.innerHeight * 0.42
+      for (const id of [...sectionIds].reverse()) {
+        const element = document.querySelector(id)
+        if (!(element instanceof HTMLElement)) {
+          continue
+        }
+
+        const top = element.getBoundingClientRect().top + window.scrollY
+        if (midpoint >= top) {
+          setActiveSection(id)
+          break
+        }
+      }
     }
-    // Set initial state
+
+    const openResume = () => setIsResumeModalOpen(true)
+
     handleScroll()
     window.addEventListener('scroll', handleScroll, { passive: true })
-    document.addEventListener('scroll', handleScroll, { passive: true })
+    document.addEventListener(
+      'open-resume',
+      openResume as EventListenerOrEventListenerObject
+    )
+
     return () => {
       window.removeEventListener('scroll', handleScroll)
-      document.removeEventListener('scroll', handleScroll)
+      document.removeEventListener(
+        'open-resume',
+        openResume as EventListenerOrEventListenerObject
+      )
     }
-  }, [])
+  }, [sectionIds])
 
-  const scrollToSection = (href: string, isModal?: boolean) => {
+  const handleModalClick = (isModal?: boolean) => {
     if (isModal) {
       setIsResumeModalOpen(true)
       setIsMobileMenuOpen(false)
-      return
-    }
-    const element = document.querySelector(href)
-    if (element) {
-      const yOffset = -80 // Offset for fixed navbar
-      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset
-      window.scrollTo({ top: y, behavior: 'smooth' })
     }
   }
 
   return (
-    <motion.nav
-      className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 pointer-events-none"
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <div className="container mx-auto px-6 py-4 flex items-center justify-center md:justify-center">
-        {/* Desktop Navigation - Rounded container around links with liquid glass */}
-        <motion.div
-          className={`hidden md:flex items-center gap-8 px-8 py-4 rounded-full transition-all duration-300 pointer-events-auto ${
-            isScrolled ? 'glass-nav' : 'bg-transparent'
+    <>
+      <motion.div
+        className="pointer-events-none fixed inset-x-0 top-5 z-[70] hidden justify-center px-4 md:flex"
+        initial={{ y: -16, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.36, ease: 'easeOut' }}
+      >
+        <div
+          className={`nav-shell pointer-events-auto flex w-fit items-center gap-1 rounded-full px-2 py-2 transition-all duration-200 ${
+            isScrolled ? 'shadow-[0_22px_70px_rgba(0,0,0,0.24)]' : ''
           }`}
-          animate={{
-            background: isScrolled 
-              ? 'linear-gradient(135deg, rgba(10, 10, 10, 0.6) 0%, rgba(17, 17, 17, 0.7) 50%, rgba(10, 10, 10, 0.6) 100%)' 
-              : 'transparent',
-            backdropFilter: isScrolled ? 'blur(50px) saturate(200%) brightness(1.1)' : 'none',
-            WebkitBackdropFilter: isScrolled ? 'blur(50px) saturate(200%) brightness(1.1)' : 'none',
-            border: isScrolled ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid transparent',
-            boxShadow: isScrolled 
-              ? '0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.15), inset 0 -1px 0 0 rgba(255, 255, 255, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.05)' 
-              : 'none',
-          }}
         >
-          {navItems.map((item, index) => (
-            <motion.button
-              key={item.name}
-              onClick={(e) => {
-                e.preventDefault()
-                scrollToSection(item.href, item.isModal)
-              }}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              aria-label={`Navigate to ${item.name} section`}
-            >
-              {item.name}
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300" />
-            </motion.button>
-          ))}
-        </motion.div>
+          {navItems.map((item) => {
+            const isActive = !item.isModal && activeSection === item.href
 
-        {/* Mobile Menu Button - Right aligned */}
-        <motion.button
-          className="md:hidden text-foreground px-4 py-2 rounded-full transition-all duration-300 pointer-events-auto ml-auto focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-          aria-expanded={isMobileMenuOpen}
-          animate={{
-            background: isScrolled 
-              ? 'linear-gradient(135deg, rgba(10, 10, 10, 0.6) 0%, rgba(17, 17, 17, 0.7) 50%, rgba(10, 10, 10, 0.6) 100%)' 
-              : 'transparent',
-            backdropFilter: isScrolled ? 'blur(50px) saturate(200%) brightness(1.1)' : 'none',
-            WebkitBackdropFilter: isScrolled ? 'blur(50px) saturate(200%) brightness(1.1)' : 'none',
-            border: isScrolled ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid transparent',
-            boxShadow: isScrolled 
-              ? '0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.15), inset 0 -1px 0 0 rgba(255, 255, 255, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.05)' 
-              : 'none',
-          }}
-        >
-          {isMobileMenuOpen ? <X size={24} aria-hidden="true" /> : <Menu size={24} aria-hidden="true" />}
-        </motion.button>
-      </div>
-
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <>
-          <motion.div
-              className="md:hidden fixed top-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-b border-border pointer-events-auto z-40"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-              <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-                <div className="flex flex-col gap-4 flex-1">
-              {navItems.map((item) => (
+            return (
+              item.isModal ? (
                 <button
                   key={item.name}
-                  onClick={(e) => {
-                    e.preventDefault()
-                    setIsMobileMenuOpen(false)
-                        scrollToSection(item.href, item.isModal)
-                  }}
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors text-left focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded px-2 py-1"
-                  aria-label={`Navigate to ${item.name} section`}
+                  type="button"
+                  data-cursor="hover"
+                  data-cursor-label={item.name.toLowerCase()}
+                  onClick={() => handleModalClick(item.isModal)}
+                  className="interactive-hit group relative inline-flex items-center rounded-full px-5 py-2.5 text-sm font-medium text-[#d0cabd] transition-colors hover:text-[#f7f2e8]"
                 >
-                  {item.name}
+                  <span className="relative z-10">
+                    <RollingText text={item.name} />
+                  </span>
                 </button>
-              ))}
+              ) : (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  data-cursor="hover"
+                  data-cursor-label={item.name.toLowerCase()}
+                  className={`interactive-hit group relative inline-flex items-center rounded-full px-5 py-2.5 text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'text-[#f7f2e8]'
+                      : 'text-[#d0cabd] hover:text-[#f7f2e8]'
+                  }`}
+                >
+                  {isActive ? (
+                    <motion.span
+                      layoutId="nav-active-pill"
+                      className="absolute inset-0 rounded-full border border-white/12 bg-[linear-gradient(180deg,rgba(143,229,255,0.12),rgba(255,138,91,0.08))]"
+                      transition={{ duration: 0.22, ease: 'easeOut' }}
+                    />
+                  ) : null}
+                  <span className="relative z-10">
+                    <RollingText text={item.name} />
+                  </span>
+                </a>
+              )
+            )
+          })}
+        </div>
+      </motion.div>
+
+      <motion.div
+        className="fixed right-4 top-4 z-[70] md:hidden"
+        initial={{ y: -16, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.36, ease: 'easeOut' }}
+      >
+        <button
+          type="button"
+          className="nav-shell inline-flex items-center gap-2 rounded-full px-4 py-3 text-sm text-[#f7f2e8]"
+          onClick={() => setIsMobileMenuOpen((current) => !current)}
+          aria-expanded={isMobileMenuOpen}
+          aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+        >
+          {isMobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          Menu
+        </button>
+      </motion.div>
+
+      <AnimatePresence>
+        {isMobileMenuOpen ? (
+          <motion.div
+            className="fixed inset-0 z-[68] bg-black/72 backdrop-blur-md md:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="pixel-frame absolute inset-x-4 top-20 rounded-[2rem] p-5"
+              initial={{ y: -18, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -18, opacity: 0 }}
+              transition={{ duration: 0.24, ease: 'easeOut' }}
+            >
+              <div className="scene-divider mb-5 flex items-center justify-between pb-4">
+                <div>
+                  <p className="eyebrow mb-2">Navigation</p>
+                  <p className="text-sm text-muted-foreground">
+                    Home, about, work, resume, and contact.
+                  </p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-2 rounded-full hover:bg-secondary/50 transition-colors ml-4 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
-                  aria-label="Close navigation menu"
+                  className="ghost-button rounded-full p-2"
+                  aria-label="Close menu"
                 >
-                  <X size={24} className="text-foreground" aria-hidden="true" />
+                  <X className="h-4 w-4" />
                 </button>
-            </div>
+              </div>
+
+              <div className="grid gap-3">
+                {navItems.map((item) => (
+                  item.isModal ? (
+                    <button
+                      key={item.name}
+                      type="button"
+                      onClick={() => handleModalClick(item.isModal)}
+                      className="soft-panel rounded-[1.4rem] px-4 py-4 text-left text-[#f5efe6]"
+                    >
+                      {item.name}
+                    </button>
+                  ) : (
+                    <a
+                      key={item.name}
+                      href={item.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="soft-panel rounded-[1.4rem] px-4 py-4 text-left text-[#f5efe6]"
+                    >
+                      {item.name}
+                    </a>
+                  )
+                ))}
+              </div>
+            </motion.div>
           </motion.div>
-          </>
-        )}
+        ) : null}
       </AnimatePresence>
 
       <ResumeModal open={isResumeModalOpen} onOpenChange={setIsResumeModalOpen} />
-    </motion.nav>
+    </>
   )
 }

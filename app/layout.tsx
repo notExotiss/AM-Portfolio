@@ -1,57 +1,79 @@
 import type { Metadata } from 'next'
-import { Inter, Ubuntu, Titillium_Web, DM_Mono, Space_Grotesk } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/react'
+import {
+  IBM_Plex_Mono,
+  Silkscreen,
+  Space_Grotesk,
+  Syne,
+} from 'next/font/google'
+import MotionProvider from '@/components/motion-provider'
 import { Toaster } from '@/components/ui/toaster'
 import './globals.css'
 
-const inter = Inter({ 
-  subsets: ["latin"],
-  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
-  variable: '--font-inter',
-});
+const display = Syne({
+  subsets: ['latin'],
+  weight: ['500', '600', '700', '800'],
+  variable: '--font-display',
+})
 
-const ubuntu = Ubuntu({
-  subsets: ["latin"],
-  weight: ['400', '700'],
-  variable: '--font-ubuntu',
-});
+const sans = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-sans',
+})
 
-const titillium = Titillium_Web({
-  subsets: ["latin"],
-  weight: ['200', '300', '400', '600', '700', '900'],
-  variable: '--font-titillium',
-});
-
-const dmMono = DM_Mono({
-  subsets: ["latin"],
+const mono = IBM_Plex_Mono({
+  subsets: ['latin'],
   weight: ['400', '500'],
-  variable: '--font-dm-mono',
-});
+  variable: '--font-mono',
+})
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ['300', '400', '500', '600', '700'],
-  variable: '--font-space-grotesk',
-});
+const pixel = Silkscreen({
+  subsets: ['latin'],
+  weight: '400',
+  variable: '--font-pixel',
+})
+
+const siteUrl = 'https://aaritmalhotra.vercel.app'
 
 export const metadata: Metadata = {
-  title: 'Aarit Malhotra - Portfolio | High School Student & Developer',
-  description: 'Portfolio of Aarit Malhotra – high school student and developer. Explore projects, resume, and contact information. Specializing in web development, React, Next.js, and modern technologies.',
-  keywords: ['Aarit Malhotra', 'portfolio', 'developer', 'web development', 'React', 'Next.js', 'high school student', 'Edison NJ'],
+  metadataBase: new URL(siteUrl),
+  title: "Aarit's Portfolio",
+  description:
+    'Portfolio of Aarit Malhotra, a high school developer from Edison, NJ building full-stack projects with a strong frontend eye for motion, feel, and detail.',
+  keywords: [
+    'Aarit Malhotra',
+    'high school developer',
+    'frontend portfolio',
+    'Next.js',
+    'React',
+    'TypeScript',
+    'Framer Motion',
+  ],
   authors: [{ name: 'Aarit Malhotra' }],
   creator: 'Aarit Malhotra',
   openGraph: {
     type: 'website',
-    locale: 'en_US',
-    url: 'https://aaritmalhotra.vercel.app',
-    title: 'Aarit Malhotra - Portfolio | High School Student & Developer',
-    description: 'Portfolio of Aarit Malhotra – high school student and developer. Explore projects, resume, and contact information.',
-    siteName: 'Aarit Malhotra Portfolio',
+    url: siteUrl,
+    title: 'Aarit Malhotra | High School Developer',
+    description:
+      'Interactive portfolio, project case studies, and motion-heavy frontend work by Aarit Malhotra.',
+    siteName: 'Aarit Malhotra',
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'Aarit Malhotra portfolio preview',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Aarit Malhotra - Portfolio | High School Student & Developer',
-    description: 'Portfolio of Aarit Malhotra – high school student and developer. Explore projects, resume, and contact information.',
+    title: 'Aarit Malhotra | High School Developer',
+    description:
+      'Interactive portfolio, project case studies, and motion-heavy frontend work by Aarit Malhotra.',
+    images: ['/opengraph-image'],
   },
   robots: {
     index: true,
@@ -65,11 +87,17 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${spaceGrotesk.className} ${spaceGrotesk.variable} ${inter.variable} ${ubuntu.variable} ${titillium.variable} ${dmMono.variable} antialiased bg-background text-foreground`}>
-        {children}
-        <Analytics />
-        <Toaster />
+    <html
+      lang="en"
+      className={`${display.variable} ${sans.variable} ${mono.variable} ${pixel.variable} dark`}
+      suppressHydrationWarning
+    >
+      <body className="min-h-screen bg-background font-sans text-foreground antialiased">
+        <MotionProvider>
+          {children}
+          <Analytics />
+          <Toaster />
+        </MotionProvider>
       </body>
     </html>
   )
