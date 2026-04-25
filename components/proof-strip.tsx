@@ -3,6 +3,7 @@
 import React, { useRef } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { gsap, useIsomorphicLayoutEffect } from '@/lib/gsap'
+import { scrollToSection } from '@/lib/scroll-to-section'
 
 const proofItems = [
   {
@@ -144,8 +145,11 @@ export default function ProofStrip() {
             </p>
             
             <div data-proof-reveal className="mt-10">
-              <a 
-                href="#contact" 
+              <button
+                type="button"
+                onClick={() => {
+                  scrollToSection('#contact')
+                }}
                 className="group inline-flex items-center gap-3 text-white text-sm uppercase tracking-widest font-medium hover:text-white/80 transition-colors"
                 data-cursor="hover"
               >
@@ -153,7 +157,7 @@ export default function ProofStrip() {
                 <div className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-white group-hover:text-black transition-all duration-300">
                   <ArrowRight className="w-4 h-4 -rotate-45 group-hover:rotate-0 transition-transform duration-300" />
                 </div>
-              </a>
+              </button>
             </div>
           </div>
 

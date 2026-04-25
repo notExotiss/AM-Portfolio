@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
+import { scrollToSection } from '@/lib/scroll-to-section'
 import RollingText from './rolling-text'
 import { ResumeModal } from './resume-modal'
 
@@ -69,6 +70,15 @@ export default function Navigation() {
     }
   }
 
+  const handleSectionClick = (sectionId: string) => {
+    if (!scrollToSection(sectionId)) {
+      return
+    }
+
+    setActiveSection(sectionId)
+    setIsMobileMenuOpen(false)
+  }
+
   return (
     <>
       <motion.div
@@ -100,16 +110,18 @@ export default function Navigation() {
                   </span>
                 </button>
               ) : (
-                <a
+                <button
                   key={item.name}
-                  href={item.href}
+                  type="button"
                   data-cursor="hover"
                   data-cursor-label={item.name.toLowerCase()}
+                  onClick={() => handleSectionClick(item.href)}
                   className={`interactive-hit group relative inline-flex items-center rounded-full px-5 py-2.5 text-sm font-medium transition-colors ${
                     isActive
                       ? 'text-[#f7f2e8]'
                       : 'text-[#d0cabd] hover:text-[#f7f2e8]'
                   }`}
+                  aria-current={isActive ? 'page' : undefined}
                 >
                   {isActive ? (
                     <motion.span
@@ -121,7 +133,7 @@ export default function Navigation() {
                   <span className="relative z-10">
                     <RollingText text={item.name} />
                   </span>
-                </a>
+                </button>
               )
             )
           })}
@@ -190,14 +202,14 @@ export default function Navigation() {
                       {item.name}
                     </button>
                   ) : (
-                    <a
+                    <button
                       key={item.name}
-                      href={item.href}
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      type="button"
+                      onClick={() => handleSectionClick(item.href)}
                       className="soft-panel rounded-[1.4rem] px-4 py-4 text-left text-[#f5efe6]"
                     >
                       {item.name}
-                    </a>
+                    </button>
                   )
                 ))}
               </div>

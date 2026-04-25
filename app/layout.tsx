@@ -90,9 +90,13 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${display.variable} ${sans.variable} ${mono.variable} ${pixel.variable} dark`}
+      style={{ backgroundColor: '#05070d' }}
       suppressHydrationWarning
     >
-      <body className="min-h-screen bg-background font-sans text-foreground antialiased">
+      <body
+        className="min-h-screen bg-background font-sans text-foreground antialiased"
+        style={{ backgroundColor: '#05070d', color: '#fbf5ea' }}
+      >
         <MotionProvider>
           {children}
           <Analytics />

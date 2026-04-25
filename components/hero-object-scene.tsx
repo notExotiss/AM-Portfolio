@@ -64,10 +64,16 @@ export default function HeroObjectScene({ enabled, pointerRef }: Props) {
       style={{ perspective: '800px', transformStyle: 'preserve-3d' }}
     >
       {/* outer soft glow */}
-      <div className="absolute inset-[15%] rounded-full bg-gradient-radial from-[var(--accent-cool)]/10 via-transparent to-transparent animate-[pulse-glow_4s_ease-in-out_infinite]" />
+      <div
+        className="absolute inset-[15%] rounded-full bg-gradient-radial from-[var(--accent-cool)]/10 via-transparent to-transparent animate-[pulse-glow_4s_ease-in-out_infinite]"
+        style={{ animationPlayState: enabled ? 'running' : 'paused' }}
+      />
 
       {/* mid ring */}
-      <div className="absolute inset-[22%] rounded-full border border-white/[0.06] animate-[pulse-glow_5s_ease-in-out_infinite_0.5s]" />
+      <div
+        className="absolute inset-[22%] rounded-full border border-white/[0.06] animate-[pulse-glow_5s_ease-in-out_infinite_0.5s]"
+        style={{ animationPlayState: enabled ? 'running' : 'paused' }}
+      />
 
       {/* inner reactive glow */}
       <div
@@ -88,6 +94,7 @@ export default function HeroObjectScene({ enabled, pointerRef }: Props) {
             'radial-gradient(circle at 45% 40%, rgba(255,255,255,0.12), transparent 60%)',
           filter: 'blur(8px)',
           animation: 'pulse-glow 3s ease-in-out infinite 1s',
+          animationPlayState: enabled ? 'running' : 'paused',
         }}
       />
     </div>

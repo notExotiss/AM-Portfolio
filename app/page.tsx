@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import About from '@/components/about'
 import Contact from '@/components/contact'
-import Hero from '@/components/hero'
+import HeroAboutTransition from '@/components/hero-about-transition'
 import InteractiveCursor from '@/components/interactive-cursor'
 import Loading from '@/components/loading'
 import Portfolio from '@/components/portfolio'
-import Footer from '@/components/footer'
+import { ResumeModal } from '@/components/resume-modal'
+import { useCompactLayout } from '@/lib/use-compact-layout'
 
 const structuredData = {
   '@context': 'https://schema.org',
@@ -41,6 +41,9 @@ export default function Home() {
   const [hydrated, setHydrated] = useState(false)
   const [fontsReady, setFontsReady] = useState(false)
   const [loaderDone, setLoaderDone] = useState(false)
+  const [heroInteractive, setHeroInteractive] = useState(false)
+  const [resumeModalOpen, setResumeModalOpen] = useState(false)
+  const { compactLayout, layoutReady } = useCompactLayout()
 
   useEffect(() => {
     setHydrated(true)
@@ -59,7 +62,38 @@ export default function Home() {
     })
   }, [])
 
-  const readyForLoader = hydrated && fontsReady
+  useEffect(() => {
+    if (!loaderDone) {
+      setHeroInteractive(false)
+      return
+    }
+
+    const timeout = window.setTimeout(() => {
+      setHeroInteractive(true)
+    }, 220)
+
+    return () => {
+      window.clearTimeout(timeout)
+    }
+  }, [loaderDone])
+
+  useEffect(() => {
+    const openResume = () => setResumeModalOpen(true)
+
+    document.addEventListener(
+      'open-resume',
+      openResume as EventListenerOrEventListenerObject
+    )
+
+    return () => {
+      document.removeEventListener(
+        'open-resume',
+        openResume as EventListenerOrEventListenerObject
+      )
+    }
+  }, [])
+
+  const readyForLoader = hydrated && fontsReady && layoutReady
   const showLoader = !loaderDone
 
   return (
@@ -81,22 +115,26 @@ export default function Home() {
             pointerEvents: loaderDone ? 'auto' : 'none',
           }}
         >
-          <Hero interactiveReady={loaderDone} />
-          <About />
-          <Portfolio />
+          <HeroAboutTransition
+            interactiveReady={heroInteractive}
+            compactLayout={compactLayout}
+          />
+          <Portfolio compactLayout={compactLayout} />
           <Contact />
-          <Footer />
         </main>
       </div>
 
       <AnimatePresence initial={false}>
         {showLoader ? (
           <Loading
+            compactLayout={compactLayout}
             ready={readyForLoader}
             onComplete={() => setLoaderDone(true)}
           />
         ) : null}
       </AnimatePresence>
+
+      <ResumeModal open={resumeModalOpen} onOpenChange={setResumeModalOpen} />
     </>
   )
 }

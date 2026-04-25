@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { cn } from '@/lib/utils'
 
 const vertexShaderSource = `
   attribute vec2 position;
@@ -14,8 +15,9 @@ const fragmentShaderSource = `
   precision highp float;
   uniform vec2 u_resolution;
   uniform float u_time;
+  uniform float u_anchor_bottom;
+  uniform float u_reference_height;
 
-  // Ashima's 3D Simplex Noise
   vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
   vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
   vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
@@ -83,159 +85,196 @@ const fragmentShaderSource = `
   }
 
   void main() {
-    // Base texture coordinates
-    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
-    uv.x *= u_resolution.x / u_resolution.y; // maintain aspect ratio
+    float referenceHeight = max(u_reference_height, 1.0);
+    vec2 uv = vec2(
+      gl_FragCoord.x / referenceHeight,
+      (gl_FragCoord.y - u_anchor_bottom) / referenceHeight
+    );
 
-    // Base noise config
     float time = u_time * 0.04;
-    vec3 p = vec3(uv * 1.2, time); // base scale
+    vec3 p = vec3(uv * 1.2, time);
 
-    // Add noise octaves for organic variation
     float n = snoise(p);
     n += 0.5 * snoise(p * 2.0 - vec3(0.0, 0.0, time * 1.5));
     n += 0.25 * snoise(p * 4.0 + vec3(0.0, 0.0, time * 0.5));
-
-    // Normalize roughly to 0..1
     n = n * 0.5 + 0.5;
 
-    // Create the topographic lines
-    float bands = 5.0; // Number of contour lines
+    float bands = 5.0;
     float val = n * bands;
-    // Distance from the nearest integer contour
     float dist = abs(fract(val + 0.5) - 0.5);
-    
-    // fwidth gives the change in 'val' over a single screen pixel
     float fw = fwidth(val);
-    
-    // Create a line of perfect, constant screen-space pixel width
-    // fw * 1.0 = ~1 pixel half-width. We use smoothstep to anti-alias strictly at the pixel boundary.
-    float halfPixelWidth = fw * 1.0; 
+    float halfPixelWidth = fw * 1.0;
     float line = 1.0 - smoothstep(0.0, halfPixelWidth, dist);
 
-    // The user requested dark lines instead of white
-    vec3 lineColor = vec3(0.04, 0.04, 0.04); // darker black-ish lines
-    
-    // We want the lines to be visible, so opacity is proportional to 'line'
-    float opacity = line * 0.85; // Stronger opacity to ensure visibility
-    
-    // No vignette - lines extend completely to the edges
+    vec3 lineColor = vec3(0.04, 0.04, 0.04);
+    float opacity = line * 0.85;
+
     gl_FragColor = vec4(lineColor, opacity);
   }
 `;
 
-export default function AboutFlowLines() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+type AboutFlowLinesProps = Readonly<{
+  className?: string
+  anchorTopPx?: number
+  referenceHeightPx?: number
+}>
+
+export default function AboutFlowLines({
+  className,
+  anchorTopPx,
+  referenceHeightPx,
+}: AboutFlowLinesProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const anchorTopRef = useRef(anchorTopPx ?? 0)
+  const referenceHeightRef = useRef(referenceHeightPx)
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    anchorTopRef.current = anchorTopPx ?? 0
+    referenceHeightRef.current = referenceHeightPx
+  }, [anchorTopPx, referenceHeightPx])
 
-    const gl = canvas.getContext('webgl', { alpha: true });
-    if (!gl) return;
-
-    // Enable standard derivatives for fwidth() contour line width consistency
-    gl.getExtension('OES_standard_derivatives');
-
-    // --- Shader compilation ---
-    const createShader = (type: number, source: string) => {
-      const shader = gl.createShader(type);
-      if (!shader) return null;
-      gl.shaderSource(shader, source);
-      gl.compileShader(shader);
-      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        console.error('Shader compile error:', gl.getShaderInfoLog(shader));
-        gl.deleteShader(shader);
-        return null;
-      }
-      return shader;
-    };
-
-    const vertexShader = createShader(gl.VERTEX_SHADER, vertexShaderSource);
-    const fragmentShader = createShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
-
-    if (!vertexShader || !fragmentShader) return;
-
-    const program = gl.createProgram();
-    if (!program) return;
-
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-    gl.linkProgram(program);
-
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      console.error('Program link error:', gl.getProgramInfoLog(program));
-      return;
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) {
+      return
     }
 
-    // --- Quad setup ---
-    const positionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    const gl = canvas.getContext('webgl', { alpha: true })
+    if (!gl) {
+      return
+    }
+
+    gl.getExtension('OES_standard_derivatives')
+
+    const createShader = (type: number, source: string) => {
+      const shader = gl.createShader(type)
+      if (!shader) {
+        return null
+      }
+
+      gl.shaderSource(shader, source)
+      gl.compileShader(shader)
+
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error('Shader compile error:', gl.getShaderInfoLog(shader))
+        gl.deleteShader(shader)
+        return null
+      }
+
+      return shader
+    }
+
+    const vertexShader = createShader(gl.VERTEX_SHADER, vertexShaderSource)
+    const fragmentShader = createShader(gl.FRAGMENT_SHADER, fragmentShaderSource)
+
+    if (!vertexShader || !fragmentShader) {
+      return
+    }
+
+    const program = gl.createProgram()
+    if (!program) {
+      return
+    }
+
+    gl.attachShader(program, vertexShader)
+    gl.attachShader(program, fragmentShader)
+    gl.linkProgram(program)
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      console.error('Program link error:', gl.getProgramInfoLog(program))
+      return
+    }
+
+    const positionBuffer = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
     const positions = new Float32Array([
       -1, -1,
-       1, -1,
-      -1,  1,
-      -1,  1,
-       1, -1,
-       1,  1,
-    ]);
-    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+      1, -1,
+      -1, 1,
+      -1, 1,
+      1, -1,
+      1, 1,
+    ])
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW)
 
-    const positionLocation = gl.getAttribLocation(program, 'position');
-    gl.enableVertexAttribArray(positionLocation);
-    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+    const positionLocation = gl.getAttribLocation(program, 'position')
+    gl.enableVertexAttribArray(positionLocation)
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0)
 
-    // --- WebGL state ---
-    gl.useProgram(program);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-    gl.enable(gl.BLEND);
+    gl.useProgram(program)
+    gl.clearColor(0, 0, 0, 0)
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+    gl.enable(gl.BLEND)
 
-    const resolutionLocation = gl.getUniformLocation(program, 'u_resolution');
-    const timeLocation = gl.getUniformLocation(program, 'u_time');
+    const resolutionLocation = gl.getUniformLocation(program, 'u_resolution')
+    const timeLocation = gl.getUniformLocation(program, 'u_time')
+    const anchorBottomLocation = gl.getUniformLocation(program, 'u_anchor_bottom')
+    const referenceHeightLocation = gl.getUniformLocation(program, 'u_reference_height')
 
-    // --- Resize handler ---
     const resize = () => {
-      if (!canvas.parentElement) return;
-      const rect = canvas.parentElement.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${rect.height}px`;
-      
-      gl.viewport(0, 0, canvas.width, canvas.height);
-      gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
-    };
+      if (!canvas.parentElement) {
+        return
+      }
 
-    window.addEventListener('resize', resize);
-    resize();
+      const rect = canvas.parentElement.getBoundingClientRect()
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      canvas.width = rect.width * dpr
+      canvas.height = rect.height * dpr
+      canvas.style.width = `${rect.width}px`
+      canvas.style.height = `${rect.height}px`
 
-    // --- Render loop ---
-    let animationFrameId: number;
-    const startTime = performance.now();
+      const resolvedReferenceHeightCss = Math.max(
+        referenceHeightRef.current ?? rect.height,
+        1
+      )
+      const resolvedAnchorTopCss = anchorTopRef.current
+      const resolvedAnchorBottomCss = Math.max(
+        rect.height - (resolvedAnchorTopCss + resolvedReferenceHeightCss),
+        0
+      )
+
+      gl.viewport(0, 0, canvas.width, canvas.height)
+      gl.uniform2f(resolutionLocation, canvas.width, canvas.height)
+      gl.uniform1f(anchorBottomLocation, resolvedAnchorBottomCss * dpr)
+      gl.uniform1f(referenceHeightLocation, resolvedReferenceHeightCss * dpr)
+    }
+
+    window.addEventListener('resize', resize)
+    resize()
+
+    let animationFrameId: number
+    const startTime = performance.now()
 
     const render = (time: number) => {
-      const elapsed = (time - startTime) / 1000;
-      gl.uniform1f(timeLocation, elapsed);
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
-      animationFrameId = requestAnimationFrame(render);
-    };
+      const elapsed = (time - startTime) / 1000
+      gl.uniform1f(timeLocation, elapsed)
+      gl.clear(gl.COLOR_BUFFER_BIT)
+      gl.drawArrays(gl.TRIANGLES, 0, 6)
+      animationFrameId = window.requestAnimationFrame(render)
+    }
 
-    animationFrameId = requestAnimationFrame(render);
+    animationFrameId = window.requestAnimationFrame(render)
 
     return () => {
-      window.removeEventListener('resize', resize);
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
+      window.removeEventListener('resize', resize)
+      window.cancelAnimationFrame(animationFrameId)
+      gl.deleteProgram(program)
+      gl.deleteShader(vertexShader)
+      gl.deleteShader(fragmentShader)
+      gl.deleteBuffer(positionBuffer)
+    }
+  }, [])
 
   return (
     <canvas
       ref={canvasRef}
       tabIndex={-1}
-      className="absolute inset-0 w-full h-full pointer-events-none z-[1]"
+      className={cn(
+        'absolute inset-0 h-full w-full pointer-events-none z-[1]',
+        className
+      )}
       style={{ opacity: 0.8 }}
       aria-hidden="true"
     />
-  );
+  )
 }

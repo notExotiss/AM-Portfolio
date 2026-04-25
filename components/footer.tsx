@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef } from 'react'
+import { scrollToSection } from '@/lib/scroll-to-section'
 import RollingText from './rolling-text'
 import { gsap, useIsomorphicLayoutEffect } from '@/lib/gsap'
 
@@ -35,12 +36,16 @@ export default function Footer() {
   return (
     <footer
       ref={footerRef}
-      className="relative border-t border-white/10 py-10 px-6"
+      className="relative overflow-hidden border-t border-white/8 px-6 py-6 sm:py-8"
     >
-      <div className="section-frame flex flex-col md:flex-row items-center justify-between gap-6">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_50%_0%,rgba(143,229,255,0.12),transparent_72%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/8" />
+      <div className="pointer-events-none absolute left-[-18%] top-0 h-px w-[34%] bg-gradient-to-r from-transparent via-[rgba(143,229,255,0.75)] to-transparent opacity-60 animate-[project-sweep_14s_ease-in-out_infinite]" />
+
+      <div className="section-frame relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <p
           data-footer-reveal
-          className="text-[#a9a191] text-sm font-mono tracking-wide"
+          className="text-sm font-mono tracking-wide text-[#a9a191]"
         >
           &copy; {new Date().getFullYear()}{' '}
           <span className="group inline-flex" data-cursor="hover">
@@ -50,19 +55,22 @@ export default function Footer() {
 
         <div
           data-footer-reveal
-          className="flex items-center gap-6 text-[#a9a191] text-sm"
+          className="flex items-center gap-5 text-sm text-[#a9a191]"
         >
           <span className="group inline-flex font-mono tracking-wide" data-cursor="hover">
             <RollingText text="Edison, NJ" />
           </span>
           <span className="w-1 h-1 rounded-full bg-white/20" />
-          <a
-            href="#home"
+          <button
+            type="button"
             data-cursor="hover"
+            onClick={() => {
+              scrollToSection('#home')
+            }}
             className="group inline-flex font-mono tracking-wide hover:text-white transition-colors duration-300"
           >
             <RollingText text="Back to top" />
-          </a>
+          </button>
         </div>
       </div>
     </footer>

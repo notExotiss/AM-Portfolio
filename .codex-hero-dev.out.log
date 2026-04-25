@@ -1,0 +1,43 @@
+
+> aarit-portfolio@1.0.0 dev
+> next dev -H 0.0.0.0
+
+   ▲ Next.js 14.1.3
+   - Local:        http://localhost:3001
+   - Network:      http://0.0.0.0:3001
+
+ ✓ Ready in 2.2s
+ ○ Compiling / ...
+ ✓ Compiled / in 2.4s (1263 modules)
+ ✓ Compiled in 428ms (632 modules)
+ ✓ Compiled /favicon.ico in 210ms (661 modules)
+ ✓ Compiled in 1361ms (1263 modules)
+ ✓ Compiled /favicon.ico in 88ms (661 modules)
+ ✓ Compiled in 1281ms (1263 modules)
+ ✓ Compiled /favicon.ico in 148ms (661 modules)
+ ✓ Compiled in 2.4s (1263 modules)
+ ✓ Compiled in 1707ms (1263 modules)
+ ✓ Compiled in 777ms (1263 modules)
+ ✓ Compiled in 798ms (1263 modules)
+ ✓ Compiled in 2s (1263 modules)
+ ✓ Compiled in 1586ms (1263 modules)
+ ✓ Compiled in 1196ms (1263 modules)
+ ✓ Compiled in 1725ms (1263 modules)
+ ✓ Compiled in 1596ms (1263 modules)
+ ✓ Compiled in 909ms (1263 modules)
+ ✓ Compiled in 812ms (1263 modules)
+ ✓ Compiled in 2.1s (1263 modules)
+ ✓ Compiled in 754ms (632 modules)
+ ✓ Compiled /favicon.ico in 400ms (661 modules)
+ ✓ Compiled in 1854ms (1263 modules)
+ ✓ Compiled in 1021ms (632 modules)
+ ✓ Compiled /not-found in 269ms (634 modules)
+ ✓ Compiled /favicon.ico in 188ms (664 modules)
+ ✓ Compiled in 1813ms (1263 modules)
+ ✓ Compiled /favicon.ico in 223ms (661 modules)
+ ✓ Compiled in 1264ms (1263 modules)
+ ✓ Compiled /not-found in 336ms (634 modules)
+ ✓ Compiled /favicon.ico in 200ms (664 modules)
+ ✓ Compiled /not-found in 1655ms (1263 modules)
+ ✓ Compiled (1266 modules)
+ ✓ Compiled /favicon.ico in 176ms (664 modules)

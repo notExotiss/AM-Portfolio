@@ -2,10 +2,11 @@
 
 import { useRef } from 'react'
 import { ArrowRight } from 'lucide-react'
-import AboutSurface from './about-surface'
 import AboutFlowLines from './about-flow-lines'
+import AboutSurface from './about-surface'
 import RollingText from './rolling-text'
 import { gsap, useIsomorphicLayoutEffect } from '@/lib/gsap'
+import { cn } from '@/lib/utils'
 
 const skills = [
   'Python',
@@ -19,14 +20,21 @@ const skills = [
   'Java',
   'Firebase',
   'Git',
-  'Shadcn',
   'Three.js',
 ]
 
-export default function About() {
+export default function About({
+  sharedBackdrop = false,
+}: Readonly<{
+  sharedBackdrop?: boolean
+}>) {
   const sectionRef = useRef<HTMLElement>(null)
 
   useIsomorphicLayoutEffect(() => {
+    if (sharedBackdrop) {
+      return
+    }
+
     const section = sectionRef.current
     if (!section) {
       return
@@ -36,7 +44,6 @@ export default function About() {
       const revealItems = gsap.utils.toArray<HTMLElement>('[data-about-reveal]')
       const panels = gsap.utils.toArray<HTMLElement>('[data-about-panel]')
 
-      /* ── staggered reveal with back ease ── */
       gsap.fromTo(
         revealItems,
         {
@@ -56,7 +63,6 @@ export default function About() {
         }
       )
 
-      /* ── bouncy panel pop-in ── */
       panels.forEach((panel, index) => {
         gsap.fromTo(
           panel,
@@ -80,7 +86,6 @@ export default function About() {
           }
         )
 
-        /* ── scroll-driven parallax on each panel ── */
         gsap.to(panel, {
           yPercent: index % 2 === 0 ? -6 : -12,
           ease: 'none',
@@ -93,7 +98,6 @@ export default function About() {
         })
       })
 
-      /* ── section title parallax (Lando Norris style) ── */
       gsap.to('[data-about-title]', {
         yPercent: -30,
         ease: 'none',
@@ -105,14 +109,16 @@ export default function About() {
         },
       })
 
-      /* ── organic flowing lines (SVG paths) ── */
       const flowLines = gsap.utils.toArray<SVGPathElement>('[data-flow-line]')
-      flowLines.forEach((line, i) => {
-        const len = line.getTotalLength()
-        gsap.set(line, { strokeDasharray: len, strokeDashoffset: len })
+      flowLines.forEach((line, index) => {
+        const lineLength = line.getTotalLength()
+        gsap.set(line, {
+          strokeDasharray: lineLength,
+          strokeDashoffset: lineLength,
+        })
         gsap.to(line, {
           strokeDashoffset: 0,
-          duration: 3 + i * 0.5,
+          duration: 3 + index * 0.5,
           ease: 'power1.inOut',
           scrollTrigger: {
             trigger: section,
@@ -123,9 +129,6 @@ export default function About() {
         })
       })
 
-      /* ── Background lines are handled by <AboutFlowLines /> now ── */
-
-      /* ── skill chip stagger reveal ── */
       const skillChips = gsap.utils.toArray<HTMLElement>('[data-skill-chip]')
       gsap.fromTo(
         skillChips,
@@ -148,26 +151,27 @@ export default function About() {
     return () => {
       ctx.revert()
     }
-  }, [])
+  }, [sharedBackdrop])
 
   return (
     <section
       id="about"
       ref={sectionRef}
-      className="about-stage paper-stage relative overflow-hidden scroll-mt-28 py-28 sm:py-32"
+      className={cn(
+        'about-stage relative overflow-visible scroll-mt-28 pt-16 pb-24 sm:pt-20 sm:pb-28 lg:py-32',
+        sharedBackdrop ? 'about-stage--shared' : 'paper-stage'
+      )}
     >
-      <AboutSurface />
-      <AboutFlowLines />
+      {!sharedBackdrop ? (
+        <>
+          <AboutSurface />
+          <AboutFlowLines />
+        </>
+      ) : null}
 
       <div className="section-frame relative z-10">
         <div className="grid gap-12 lg:grid-cols-[0.72fr_1.28fr]">
           <div className="max-w-[34rem]">
-            <p
-              data-about-reveal
-              className="eyebrow mb-5 text-[#101318]/52"
-            >
-              Profile
-            </p>
             <h2
               data-about-reveal
               data-about-title
@@ -256,23 +260,24 @@ export default function About() {
             </p>
           </div>
 
-          {/* ── Skills Panel — static only ── */}
           <div
             data-about-panel
-            className="about-panel cutout-stage border border-[#101318]/10 bg-[rgba(255,255,255,0.34)] p-6 sm:p-8"
+            className="about-panel cutout-stage border border-[#101318]/12 bg-[rgba(255,255,255,0.62)] p-6 sm:p-8"
             style={{
               clipPath:
                 'polygon(0 0, calc(100% - 48px) 0, 100% 40px, 100% 100%, 0 100%)',
             }}
           >
-            <p className="eyebrow mb-5 text-[#101318] font-bold">My Tech Stack</p>
+            <p className="mb-5 font-mono text-[0.78rem] font-bold uppercase tracking-[0.18em] text-[#101318]">
+              My Tech Stack
+            </p>
 
             <div className="flex flex-wrap gap-3">
               {skills.map((skill) => (
                 <span
                   key={skill}
                   data-skill-chip
-                  className="group rounded-full border border-[#101318]/10 bg-white/70 px-4 py-2 font-mono text-[0.74rem] uppercase tracking-[0.12em] text-[#101318] transition-all duration-300 hover:bg-[#101318] hover:text-white hover:border-[#101318] hover:scale-110 hover:shadow-[0_4px_20px_rgba(16,19,24,0.15)] cursor-default"
+                  className="group cursor-default rounded-full border border-[#101318]/14 bg-white/92 px-4 py-2 font-mono text-[0.74rem] uppercase tracking-[0.12em] text-[#101318] shadow-[0_6px_18px_rgba(16,19,24,0.25)] transition-all duration-300 hover:scale-110 hover:border-[#101318] hover:bg-[#101318] hover:text-white hover:shadow-[0_4px_20px_rgba(16,19,24,0.15)]"
                 >
                   {skill}
                 </span>

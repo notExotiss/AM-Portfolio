@@ -5,7 +5,17 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowUpRight, Github, Play } from 'lucide-react'
 import Image from 'next/image'
 import RollingText from './rolling-text'
-import { gsap, useIsomorphicLayoutEffect } from '@/lib/gsap'
+import { ScrollTrigger, gsap, useIsomorphicLayoutEffect } from '@/lib/gsap'
+
+const portfolioRevealViewport = {
+  once: true,
+  amount: 0.2,
+} as const
+
+const portfolioRevealTransition = {
+  duration: 0.9,
+  ease: [0.22, 1, 0.36, 1] as const,
+}
 
 type Project = {
   id: number
@@ -31,11 +41,11 @@ const projects: Project[] = [
     id: 1,
     number: '01',
     title: 'Woodrow Wilson Math Competition',
-    category: 'Platform / Event Infrastructure',
+    category: 'Competition Platform',
     summary:
       "Built the public site and support workflow for Edison's district math competition.",
     detail:
-      'This had to stay clear for students, parents, and volunteers at the same time, especially once registration, communication, and scoring all had to work together.',
+      'I designed it so students, parents, and volunteers could all find what they needed quickly, even once registration and scoring were in the mix.',
     role: 'Design, frontend implementation, and operational tooling',
     tech: ['HTML', 'CSS', 'JavaScript', 'Excel'],
     accent: '#67ddff',
@@ -63,11 +73,11 @@ const projects: Project[] = [
     id: 2,
     number: '02',
     title: 'A.M. Tutoring',
-    category: 'Product / Dashboard System',
+    category: 'Tutoring Platform',
     summary:
-      'Built a tutoring platform with student flows, admin tools, tests, and a more product-like visual system.',
+      'Built a tutoring platform with sign-in, testing, dashboards, and admin tools.',
     detail:
-      'The interesting part was making sign-in, dashboards, testing, and admin tools all feel like one product instead of separate screens stitched together.',
+      'The challenge was making the student and admin flows feel like one product instead of a pile of separate tools.',
     role: 'Product direction, frontend architecture, and UI systems',
     tech: ['Next.js', 'React', 'TypeScript', 'Tailwind CSS'],
     accent: '#ff8a5b',
@@ -103,9 +113,9 @@ const projects: Project[] = [
     id: 3,
     number: '03',
     title: 'AgriSense',
-    category: 'Data-rich Dashboard',
+    category: 'Agriculture Dashboard',
     summary:
-      'Built an agriculture dashboard around maps, field data, and planning tools.',
+      'Built an agriculture dashboard for field maps, NDVI analysis, and planning.',
     detail:
       'AgriSense pushed me into denser information design. The hard part was turning sensor data, NDVI analysis, and planning tools into something that still felt readable.',
     role: 'Frontend implementation and information design',
@@ -132,11 +142,11 @@ const projects: Project[] = [
     id: 4,
     number: '04',
     title: 'Back In Time',
-    category: 'Game Design / Motion',
+    category: 'Platformer Prototype',
     summary:
-      'Made a time-travel platformer prototype for FBLA with both 2D and 3D experiments.',
+      'Built a time-travel platformer prototype for FBLA in both 2D and 3D.',
     detail:
-      'This project taught me a lot about pacing, environment design, and the way motion changes how a mechanic feels before you even explain it.',
+      'I used it to explore pacing, level feel, and how motion changes the way a mechanic reads before you explain it.',
     role: 'Gameplay systems, environment design, and iteration',
     tech: ['C#', 'Unity', 'Aseprite', 'Photoshop'],
     accent: '#67ddff',
@@ -165,60 +175,182 @@ const projects: Project[] = [
   },
 ]
 
-function ProjectLinks({ project }: { project: Project }) {
+function ProjectLinks({
+  project,
+  iconOnly = false,
+  compact = false,
+  className = '',
+}: {
+  project: Project
+  iconOnly?: boolean
+  compact?: boolean
+  className?: string
+}) {
+  const items = [
+    project.links.github
+      ? {
+          href: project.links.github,
+          label: 'GitHub',
+          cursor: 'github',
+          icon: <Github className="h-4 w-4" />,
+        }
+      : null,
+    project.links.website
+      ? {
+          href: project.links.website,
+          label: 'Visit site',
+          cursor: 'visit',
+          icon: <ArrowUpRight className="h-4 w-4" />,
+        }
+      : null,
+    project.links.youtube
+      ? {
+          href: project.links.youtube,
+          label: 'Demo',
+          cursor: 'demo',
+          icon: <Play className="h-4 w-4" />,
+        }
+      : null,
+  ].filter(
+    (
+      item
+    ): item is { href: string; label: string; cursor: string; icon: JSX.Element } =>
+      item !== null
+  )
+
   return (
-    <div className="flex flex-wrap gap-3">
-      {project.links.github ? (
-        <a
-          href={project.links.github}
-          target="_blank"
-          rel="noopener noreferrer"
-          data-cursor="hover"
-          data-cursor-label="github"
-          className="interactive-hit group ghost-button inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium"
-        >
-          <Github className="h-4 w-4" />
-          <RollingText text="GitHub" />
-        </a>
-      ) : null}
-      {project.links.website ? (
-        <a
-          href={project.links.website}
-          target="_blank"
-          rel="noopener noreferrer"
-          data-cursor="hover"
-          data-cursor-label="visit"
-          className="interactive-hit group primary-button inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold"
-        >
-          <ArrowUpRight className="h-4 w-4" />
-          <RollingText text="Visit project" />
-        </a>
-      ) : null}
-      {project.links.youtube ? (
-        <a
-          href={project.links.youtube}
-          target="_blank"
-          rel="noopener noreferrer"
-          data-cursor="hover"
-          data-cursor-label="demo"
-          className="interactive-hit group ghost-button inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium"
-        >
-          <Play className="h-4 w-4" />
-          <RollingText text="Demo" />
-        </a>
-      ) : null}
+    <div
+      className={
+        iconOnly
+          ? `flex flex-wrap items-center gap-2 ${className}`.trim()
+          : `flex flex-wrap gap-3 ${className}`.trim()
+      }
+    >
+      {items.map((item) =>
+        iconOnly ? (
+          <a
+            key={`${project.id}-${item.label}`}
+            href={item.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={item.label}
+            title={item.label}
+            data-cursor="hover"
+            data-cursor-label={item.cursor}
+            className="interactive-hit inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-[#090d13]/88 text-[#f2ede4] transition-colors hover:border-white/24 hover:bg-white/[0.08]"
+          >
+            {item.icon}
+          </a>
+        ) : (
+          <a
+            key={`${project.id}-${item.label}`}
+            href={item.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-cursor="hover"
+            data-cursor-label={item.cursor}
+            className={
+              compact
+                ? 'interactive-hit group inline-flex items-center gap-2 rounded-full border border-white/12 bg-[#090d13]/88 px-3 py-2 text-xs font-medium text-[#f2ede4] transition-colors hover:border-white/24 hover:bg-white/[0.08]'
+                : `interactive-hit group inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm ${
+                    item.label === 'Visit site'
+                      ? 'primary-button font-semibold'
+                      : 'ghost-button font-medium'
+                  }`
+            }
+          >
+            {item.icon}
+            <RollingText text={item.label} />
+          </a>
+        )
+      )}
     </div>
   )
 }
 
-export default function Portfolio() {
+function ProjectFrameSelector({
+  project,
+  selectedImageIndex,
+  onSelect,
+  interactive = true,
+  compact = false,
+  className = '',
+}: {
+  project: Project
+  selectedImageIndex: number
+  onSelect: (index: number) => void
+  interactive?: boolean
+  compact?: boolean
+  className?: string
+}) {
+  return (
+    <div
+      className={`flex flex-wrap items-center ${
+        compact ? 'justify-end gap-2' : 'gap-2'
+      } ${className}`.trim()}
+    >
+        {project.images.map((image, index) => (
+          interactive ? (
+            <button
+              key={`${project.id}-${image.url}-${index}`}
+              type="button"
+              aria-label={`Show frame ${index + 1}`}
+              title={`Frame ${index + 1}`}
+              data-cursor="hover"
+              data-cursor-label={`${index + 1}`}
+              onClick={() => onSelect(index)}
+              className={`flex items-center justify-center rounded-full text-xs font-medium transition-colors ${
+                compact ? 'h-9 w-9' : 'h-10 w-10'
+              } ${
+                index === selectedImageIndex
+                  ? 'text-[#0d1116]'
+                  : 'border border-white/12 text-[#d0c9be] hover:border-white/24 hover:text-[#f2ede4]'
+              }`}
+              style={
+                index === selectedImageIndex
+                  ? { backgroundColor: project.accent }
+                  : undefined
+              }
+            >
+              {index + 1}
+            </button>
+          ) : (
+            <span
+              key={`${project.id}-${image.url}-${index}`}
+              aria-hidden="true"
+              className={`flex items-center justify-center rounded-full text-xs font-medium transition-colors ${
+                compact ? 'h-9 w-9' : 'h-10 w-10'
+              } ${
+                index === selectedImageIndex
+                  ? 'text-[#0d1116]'
+                  : 'border border-white/12 text-[#d0c9be]'
+              }`}
+              style={
+                index === selectedImageIndex
+                  ? { backgroundColor: project.accent }
+                  : undefined
+              }
+            >
+              {index + 1}
+            </span>
+          )
+        ))}
+    </div>
+  )
+}
+
+export default function Portfolio({
+  compactLayout = false,
+}: Readonly<{
+  compactLayout?: boolean
+}>) {
   const sectionRef = useRef<HTMLElement>(null)
   const stepRefs = useRef<Array<HTMLElement | null>>([])
-  const stageRef = useRef<HTMLDivElement>(null)
-  const stageMetaRef = useRef<HTMLDivElement>(null)
+  const stageWrapperRef = useRef<HTMLDivElement>(null)
 
   const [selectedId, setSelectedId] = useState(1)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [desktopStageWidth, setDesktopStageWidth] = useState<number | null>(null)
 
   const selectedProject = useMemo(
     () => projects.find((project) => project.id === selectedId) ?? projects[0],
@@ -234,18 +366,96 @@ export default function Portfolio() {
     setSelectedImageIndex(0)
   }, [selectedId])
 
+  useEffect(() => {
+    const stageWrapper = stageWrapperRef.current
+
+    if (!stageWrapper || compactLayout) {
+      setDesktopStageWidth(null)
+      return
+    }
+
+    const aspectRatio = 1.18
+
+    const updateLayout = () => {
+      if (compactLayout || window.innerWidth < 1024) {
+        setDesktopStageWidth(null)
+        return
+      }
+
+      const wrapperWidth = stageWrapper.getBoundingClientRect().width
+      const targetStageHeight = Math.max(
+        460,
+        Math.min(525, window.innerHeight - 170)
+      )
+      const targetStageWidth = Math.min(
+        wrapperWidth,
+        targetStageHeight * aspectRatio,
+        620
+      )
+
+      setDesktopStageWidth(targetStageWidth)
+    }
+
+    updateLayout()
+
+    const observer = new ResizeObserver(() => {
+      updateLayout()
+    })
+
+    observer.observe(stageWrapper)
+    window.addEventListener('resize', updateLayout)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', updateLayout)
+    }
+  }, [compactLayout])
+
   useIsomorphicLayoutEffect(() => {
     const section = sectionRef.current
-    const stage = stageRef.current
     const nodes = stepRefs.current.filter(
       (node): node is HTMLElement => node instanceof HTMLElement
     )
 
-    if (!section || !stage || !nodes.length) {
+    if (!section || !nodes.length || compactLayout) {
       return
     }
 
     const ctx = gsap.context(() => {
+      const syncSelectedFromScroll = () => {
+        const anchor = window.innerHeight * 0.48
+        let nextId = projects[0]?.id ?? 1
+        let minDistance = Number.POSITIVE_INFINITY
+
+        nodes.forEach((node, index) => {
+          const rect = node.getBoundingClientRect()
+          const projectId = projects[index]?.id
+
+          if (!projectId || rect.bottom <= 0 || rect.top >= window.innerHeight) {
+            return
+          }
+
+          const center = rect.top + rect.height / 2
+          const distance = Math.abs(center - anchor)
+
+          if (distance < minDistance) {
+            minDistance = distance
+            nextId = projectId
+          }
+        })
+
+        setSelectedId((current) => (current === nextId ? current : nextId))
+      }
+
+      const activeProjectTrigger = ScrollTrigger.create({
+        trigger: section,
+        start: 'top bottom',
+        end: 'bottom top',
+        onUpdate: syncSelectedFromScroll,
+        onRefresh: syncSelectedFromScroll,
+      })
+
+      syncSelectedFromScroll()
       /* ── bouncy heading reveal ── */
       gsap.fromTo(
         '[data-work-heading]',
@@ -268,70 +478,8 @@ export default function Portfolio() {
         }
       )
 
-      /* ── stage parallax ── */
-      gsap.to(stage, {
-        yPercent: -10,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: section,
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: true,
-        },
-      })
-
       /* ── project panels — bounce in with rotation + parallax ── */
-      nodes.forEach((node, index) => {
-        const projectId = projects[index]?.id
-        const panel = node.querySelector<HTMLElement>('[data-project-panel]')
-
-        if (projectId) {
-          gsap.timeline({
-            scrollTrigger: {
-              trigger: node,
-              start: 'top center+=8%',
-              end: 'bottom center',
-              onEnter: () => setSelectedId(projectId),
-              onEnterBack: () => setSelectedId(projectId),
-            },
-          })
-        }
-
-        if (panel) {
-          gsap.fromTo(
-            panel,
-            {
-              y: 70,
-              autoAlpha: 0,
-              rotate: index % 2 === 0 ? -1.5 : 1.5,
-              scale: 0.96,
-            },
-            {
-              y: 0,
-              autoAlpha: 1,
-              rotate: 0,
-              scale: 1,
-              duration: 1.1,
-              ease: 'back.out(1.6)',
-              scrollTrigger: {
-                trigger: node,
-                start: 'top 80%',
-              },
-            }
-          )
-
-          /* scroll-driven parallax per panel */
-          gsap.to(panel, {
-            yPercent: index % 2 === 0 ? -5 : -9,
-            ease: 'none',
-            scrollTrigger: {
-              trigger: node,
-              start: 'top bottom',
-              end: 'bottom top',
-              scrub: 1,
-            },
-          })
-        }
+      nodes.forEach((node) => {
 
         /* ── tech chip stagger per project ── */
         const chips = node.querySelectorAll<HTMLElement>('[data-tech-chip]')
@@ -373,10 +521,10 @@ export default function Portfolio() {
     return () => {
       ctx.revert()
     }
-  }, [])
+  }, [compactLayout])
 
   useEffect(() => {
-    if (selectedProject.images.length <= 1) {
+    if (compactLayout || selectedProject.images.length <= 1) {
       return
     }
 
@@ -385,52 +533,16 @@ export default function Portfolio() {
     }, 2500)
 
     return () => window.clearInterval(interval)
-  }, [selectedProject])
-
-  useEffect(() => {
-    if (stageRef.current) {
-      gsap.fromTo(
-        stageRef.current,
-        {
-          scale: 0.985,
-          y: 18,
-        },
-        {
-          scale: 1,
-          y: 0,
-          duration: 0.42,
-          ease: 'power3.out',
-        }
-      )
-    }
-
-    if (stageMetaRef.current) {
-      gsap.fromTo(
-        stageMetaRef.current.querySelectorAll('[data-stage-meta]'),
-        {
-          y: 16,
-          autoAlpha: 0,
-        },
-        {
-          y: 0,
-          autoAlpha: 1,
-          duration: 0.44,
-          stagger: 0.04,
-          ease: 'power3.out',
-        }
-      )
-    }
-  }, [selectedId, selectedImageIndex])
+  }, [compactLayout, selectedProject])
 
   return (
     <section
       id="portfolio"
       ref={sectionRef}
-      className="relative overflow-x-clip scroll-mt-28 pb-20 pt-20 sm:pb-24"
+      className="relative overflow-x-clip scroll-mt-28 pb-10 pt-16 sm:pb-14 sm:pt-18"
     >
-      <div className="absolute inset-x-0 top-0 h-48 bg-[linear-gradient(180deg,rgba(5,7,13,0.96),rgba(5,7,13,0.5),transparent)]" />
-      <div className="absolute inset-y-0 left-[4%] w-[26%] bg-[radial-gradient(circle_at_24%_22%,rgba(103,221,255,0.08),transparent_26%)]" />
-      <div className="absolute inset-y-0 right-[2%] w-[32%] bg-[radial-gradient(circle_at_72%_22%,rgba(255,138,91,0.08),transparent_26%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,7,13,0.96),rgba(5,7,13,0.8)_10%,rgba(5,7,13,0.38)_30%,transparent_52%),radial-gradient(circle_at_16%_18%,rgba(103,221,255,0.08),transparent_24%),radial-gradient(circle_at_84%_16%,rgba(255,138,91,0.07),transparent_26%),radial-gradient(circle_at_50%_72%,rgba(255,255,255,0.03),transparent_30%)]" />
+      <div className="absolute inset-0 opacity-70 [mask-image:linear-gradient(180deg,black_0%,black_72%,transparent_100%)] bg-[linear-gradient(90deg,rgba(103,221,255,0.012),transparent_18%,transparent_78%,rgba(255,138,91,0.012))]" />
 
       {/* Floating background particles */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
@@ -460,301 +572,263 @@ export default function Portfolio() {
       </div>
 
       <div className="section-frame relative z-10">
-        <div className="scene-divider pb-8">
+        <motion.div
+          className="scene-divider pb-8"
+          initial={{ opacity: 0, y: 44 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={portfolioRevealViewport}
+          transition={portfolioRevealTransition}
+        >
           <p
             data-work-heading
             className="eyebrow mb-4 text-[var(--accent-cool)]"
-          >
-            Selected Work
-          </p>
+          />
           <h2 className="text-[clamp(3rem,6vw,6.2rem)] leading-[0.92] tracking-[-0.065em] text-[#f7f2e8]">
-            <span data-work-heading className="inline-block">
-              Portfolio
-            </span>
+            <span className="inline-block">My Portfolio</span>
           </h2>
-        </div>
+        </motion.div>
       </div>
 
-      <div className="section-frame relative z-10 mt-8 grid items-start gap-12 lg:grid-cols-[0.92fr_1.08fr]">
-        <div className="lg:sticky lg:top-28 lg:self-start lg:h-[calc(100vh-8rem)]">
-          <div ref={stageRef} className="flex h-full flex-col justify-start pt-2 lg:pr-6">
-            <div className="project-stage relative aspect-[1.18] overflow-hidden rounded-[2.3rem]">
-              <div className="project-stage-sweep" aria-hidden="true" />
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={`${selectedProject.id}-${activeImage.url}`}
-                  className="absolute inset-0 project-stage-frame"
-                  initial={{ opacity: 0, y: 22, scale: 0.985 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -12, scale: 1.015 }}
-                  transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+      {!compactLayout ? (
+        <div className="section-frame relative z-10 mt-6 hidden items-start gap-10 lg:grid lg:grid-cols-[0.92fr_1.08fr]">
+          <div className="lg:sticky lg:top-20 lg:self-start">
+            <div className="relative py-8 lg:pr-4 lg:pt-10">
+              <div
+                ref={stageWrapperRef}
+                className="relative mx-auto w-full max-w-[620px]"
+              >
+                <div
+                  className="project-stage relative mx-auto aspect-[1.18] overflow-hidden rounded-[2.3rem]"
+                  style={
+                    desktopStageWidth
+                      ? {
+                          width: `${desktopStageWidth}px`,
+                        }
+                      : undefined
+                  }
                 >
+                  <div className="project-stage-sweep" aria-hidden="true" />
                   <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(9,13,19,0.98),rgba(7,10,16,0.98))]" />
-                  <Image
-                    src={activeImage.url}
-                    alt={activeImage.note}
-                    fill
-                    priority={selectedProject.id === projects[0].id && selectedImageIndex === 0}
-                    sizes="(min-width: 1280px) 42vw, (min-width: 1024px) 40vw, (min-width: 768px) 88vw, 100vw"
-                    className="object-contain p-4 sm:p-5"
-                  />
-                </motion.div>
-              </AnimatePresence>
+                  <div className="absolute inset-x-5 top-5 bottom-[7.9rem] overflow-hidden rounded-[1.4rem] bg-[#0b1018]">
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.div
+                        key={`${selectedProject.id}-${activeImage.url}`}
+                        className="absolute inset-0 project-stage-frame"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                      >
+                        <Image
+                          src={activeImage.url}
+                          alt={activeImage.note}
+                          fill
+                          priority={selectedProject.id === projects[0].id && selectedImageIndex === 0}
+                          sizes="(min-width: 1280px) 42vw, (min-width: 1024px) 40vw, (min-width: 768px) 88vw, 100vw"
+                          className="object-contain p-4 sm:p-5"
+                        />
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
 
-              <div className="absolute inset-x-6 bottom-5 h-1 rounded-full bg-white/8">
-                <motion.div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${((selectedImageIndex + 1) / selectedProject.images.length) * 100}%`,
-                    background: selectedProject.accent,
-                  }}
-                  transition={{ duration: 0.24, ease: 'easeOut' }}
-                />
-              </div>
-            </div>
+                  <div className="absolute inset-x-6 bottom-5 h-1 rounded-full bg-white/8">
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${((selectedImageIndex + 1) / selectedProject.images.length) * 100}%`,
+                        background: selectedProject.accent,
+                      }}
+                      transition={{ duration: 0.24, ease: 'easeOut' }}
+                    />
+                  </div>
 
-            <div
-              ref={stageMetaRef}
-              className="mt-6 grid gap-6 lg:grid-cols-[1fr_auto] lg:items-start"
-            >
-              <div className="space-y-4">
-                <p
-                  data-stage-meta
-                  className="text-sm leading-relaxed text-[#d7d0c4] sm:text-base"
-                >
-                  {activeImage.note}
-                </p>
-                <p
-                  data-stage-meta
-                  className="font-mono text-[0.76rem] uppercase tracking-[0.18em]"
-                  style={{ color: selectedProject.accent }}
-                >
-                  {selectedProject.role}
-                </p>
-                <div data-stage-meta className="flex flex-wrap gap-2">
-                  {selectedProject.tech.map((item) => (
-                    <span
-                      key={`${selectedProject.id}-${item}`}
-                      data-tech-chip
-                      className="skill-chip rounded-full px-3 py-1.5"
-                    >
-                      {item}
-                    </span>
-                  ))}
-                </div>
-                <div data-stage-meta>
-                  <ProjectLinks project={selectedProject} />
-                </div>
-              </div>
-
-              <div data-stage-meta className="lg:max-w-[12rem]">
-                <p className="eyebrow mb-3 text-[#d0d9e5]">Frames</p>
-                <div className="flex flex-wrap gap-2">
-                  {selectedProject.images.map((image, index) => (
-                    <button
-                      key={`${selectedProject.id}-${image.url}-${index}`}
-                      type="button"
-                      data-cursor="hover"
-                      data-cursor-label={`${index + 1}`}
-                      onClick={() => setSelectedImageIndex(index)}
-                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                        index === selectedImageIndex
-                          ? 'text-[#0d1116]'
-                          : 'border border-white/12 text-[#d0c9be] hover:border-white/24 hover:text-[#f2ede4]'
-                      }`}
-                      style={
-                        index === selectedImageIndex
-                          ? { backgroundColor: selectedProject.accent }
-                          : undefined
-                      }
-                    >
-                      {index + 1}
-                    </button>
-                  ))}
+                  <div className="absolute inset-x-6 bottom-10 hidden gap-3 lg:flex lg:flex-col">
+                    <p className="max-w-[72%] text-sm leading-snug text-[#e7dece]">
+                      {activeImage.note}
+                    </p>
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <ProjectLinks project={selectedProject} compact />
+                      </div>
+                      <div className="ml-auto">
+                        <ProjectFrameSelector
+                          project={selectedProject}
+                          selectedImageIndex={selectedImageIndex}
+                          onSelect={setSelectedImageIndex}
+                          interactive={false}
+                          compact
+                          className="shrink-0"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="relative">
-          {projects.map((project, index) => {
-            const isSelected = selectedProject.id === project.id
+          <div className="relative">
+            {projects.map((project, index) => {
+              const isSelected = selectedProject.id === project.id
 
-            return (
-              <article
-                key={project.id}
-                ref={(node) => {
-                  stepRefs.current[index] = node
-                }}
-                data-project-id={project.id}
-                className="scene-rule flex min-h-[88vh] items-center pb-12 pt-12 last:pb-0"
-                onMouseEnter={() => setSelectedId(project.id)}
-                onFocusCapture={() => setSelectedId(project.id)}
-              >
-                <button
-                  type="button"
-                  data-cursor="hover"
-                  data-cursor-label={project.number}
-                  onClick={() => {
-                    const target = stepRefs.current[index]
-                    if (target) {
-                      target.scrollIntoView({
-                        block: 'center',
-                        inline: 'nearest',
-                      })
-                    }
-                    setSelectedId(project.id)
+              return (
+                <article
+                  key={project.id}
+                  ref={(node) => {
+                    stepRefs.current[index] = node
                   }}
-                  className="group block w-full text-left"
+                  data-project-id={project.id}
+                  className="scene-rule flex min-h-[74vh] items-start pb-10 pt-10 lg:min-h-[36rem] lg:items-start lg:pb-0 lg:pt-10"
                 >
-                  <div
-                    data-project-panel
-                    className={`cutout-stage relative overflow-hidden border px-6 py-7 transition-colors sm:px-8 sm:py-8 ${
-                      isSelected
-                        ? 'border-white/16 bg-white/[0.045]'
-                        : 'border-white/8 bg-white/[0.015]'
-                    }`}
-                    style={{
-                      clipPath:
-                        index % 2 === 0
-                          ? 'polygon(0 0, calc(100% - 46px) 0, 100% 44px, 100% 100%, 0 100%)'
-                          : 'polygon(0 0, 100% 0, 100% calc(100% - 44px), calc(100% - 56px) 100%, 0 100%)',
-                    }}
-                  >
+                  <div className="group block w-full text-left">
                     <motion.div
-                      className="absolute inset-y-5 left-0 w-[4px] rounded-full"
-                      animate={{
-                        opacity: isSelected ? 1 : 0,
-                        scaleY: isSelected ? 1 : 0.24,
+                      data-project-panel
+                      className={`cutout-stage relative min-h-[24.75rem] overflow-hidden border px-6 py-6 transition-colors sm:px-8 sm:py-6 lg:min-h-[25.75rem] ${
+                        isSelected
+                          ? 'border-white/16 bg-white/[0.045]'
+                          : 'border-white/8 bg-white/[0.015]'
+                      }`}
+                      style={{
+                        visibility: 'visible',
+                        clipPath:
+                          index % 2 === 0
+                            ? 'polygon(0 0, calc(100% - 46px) 0, 100% 44px, 100% 100%, 0 100%)'
+                            : 'polygon(0 0, 100% 0, 100% calc(100% - 44px), calc(100% - 56px) 100%, 0 100%)',
                       }}
-                      style={{ backgroundColor: project.accent }}
-                      transition={{ duration: 0.22, ease: 'easeOut' }}
-                    />
-                    <div className="grid gap-6 xl:grid-cols-[auto_1fr_auto] xl:items-start">
-                      <span
-                        className="font-mono text-[1.4rem] leading-none tracking-[0.14em]"
-                        style={{
-                          color: isSelected ? project.accent : 'rgba(255,255,255,0.28)',
-                        }}
-                      >
-                        {project.number}
-                      </span>
-
-                      <div>
-                        <p
-                          className="mb-3 text-[0.72rem] uppercase tracking-[0.28em]"
-                          style={{ color: isSelected ? project.accent : '#8da1bb' }}
-                        >
-                          {project.category}
-                        </p>
-                        <motion.h3
-                          className={`max-w-[13ch] text-[clamp(2.8rem,5vw,5rem)] leading-[0.92] tracking-[-0.065em] transition-colors duration-200 ${
-                            isSelected ? 'text-[#f2ede4]' : 'text-white/42'
-                          }`}
-                          animate={{ x: isSelected ? 22 : 0 }}
-                          transition={{ duration: 0.28, ease: 'easeOut' }}
-                        >
-                          {project.title}
-                        </motion.h3>
-                        <p className="mt-4 max-w-2xl text-base leading-relaxed text-[#ddd6cb] transition-colors duration-200 group-hover:text-[#f0e8dc] sm:text-lg">
-                          {project.summary}
-                        </p>
-                        <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-                          {project.detail}
-                        </p>
-                        <p className="mt-5 font-mono text-[0.76rem] uppercase tracking-[0.18em] text-[#bcb4a9]">
-                          {project.tech.join(' / ')}
-                        </p>
-                      </div>
-
+                      initial={{
+                        opacity: 0,
+                        y: 36,
+                        visibility: 'visible',
+                      }}
+                      whileInView={{
+                        opacity: 1,
+                        y: 0,
+                        visibility: 'visible',
+                      }}
+                      viewport={{ once: true, amount: 0.24 }}
+                      transition={{
+                        ...portfolioRevealTransition,
+                        duration: 0.82,
+                        delay: index * 0.04,
+                      }}
+                    >
                       <motion.div
-                        className="hidden xl:flex"
-                        animate={{ x: isSelected ? 0 : -8, opacity: isSelected ? 1 : 0.46 }}
+                        className="absolute inset-y-5 left-0 w-[4px] rounded-full"
+                        animate={{
+                          opacity: isSelected ? 1 : 0,
+                          scaleY: isSelected ? 1 : 0.24,
+                        }}
+                        style={{ backgroundColor: project.accent }}
                         transition={{ duration: 0.22, ease: 'easeOut' }}
-                      >
-                        <div
-                          className="flex h-11 w-11 items-center justify-center rounded-full border"
+                      />
+                      <div className="grid h-full gap-5 xl:grid-cols-[auto_1fr] xl:items-stretch">
+                        <span
+                          className="font-mono text-[1.4rem] leading-none tracking-[0.14em]"
                           style={{
-                            borderColor: isSelected
-                              ? project.accent
-                              : 'rgba(255,255,255,0.12)',
-                            color: isSelected ? project.accent : 'rgba(255,255,255,0.42)',
+                            color: isSelected ? project.accent : 'rgba(255,255,255,0.28)',
                           }}
                         >
-                          <ArrowUpRight className="h-4 w-4" />
+                          {project.number}
+                        </span>
+
+                        <div className="flex h-full min-h-0 flex-col justify-between gap-8">
+                          <div className="space-y-4">
+                            <p
+                              className="text-[0.72rem] uppercase tracking-[0.28em]"
+                              style={{ color: isSelected ? project.accent : '#8da1bb' }}
+                            >
+                              {project.category}
+                            </p>
+                            <h3
+                              className={`max-w-[13ch] text-[clamp(2.8rem,5vw,5rem)] leading-[0.92] tracking-[-0.065em] transition-colors duration-200 ${
+                                isSelected ? 'text-[#f2ede4]' : 'text-white/42'
+                              }`}
+                            >
+                              {project.title}
+                            </h3>
+                            <p className="max-w-2xl text-base leading-relaxed text-[#ddd6cb] transition-colors duration-200 sm:text-lg">
+                              {project.summary}
+                            </p>
+                          </div>
+                          <p
+                            data-tech-chip
+                            className="border-t border-white/7 pt-5 font-mono text-[0.76rem] uppercase tracking-[0.18em] text-[#bcb4a9]"
+                          >
+                            {project.tech.join(' / ')}
+                          </p>
                         </div>
-                      </motion.div>
-                    </div>
+                      </div>
+                    </motion.div>
                   </div>
-                </button>
-              </article>
-            )
-          })}
+                </article>
+              )
+            })}
+          </div>
         </div>
-      </div>
+      ) : null}
 
-      <div className="section-frame mt-16 grid gap-6 xl:hidden">
-        {projects.map((project, index) => (
-          <motion.article
-            key={project.id}
-            className="scene-rule pb-8"
-            initial={{ opacity: 0, y: 22 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.42, delay: index * 0.05 }}
-          >
-            <div
-              className="project-stage relative aspect-[1.42] overflow-hidden rounded-[1.8rem]"
-              style={{
-                background: `radial-gradient(circle_at_78%_18%, ${project.glow}, transparent 24%), linear-gradient(180deg, #090b0e, #0d1116)`,
-              }}
+      {compactLayout ? (
+        <div className="section-frame mt-12 grid gap-6 lg:hidden">
+          {projects.map((project, index) => (
+            <motion.article
+              key={project.id}
+              className="scene-rule pb-8"
+              initial={{ opacity: 0, y: 22 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.42, delay: index * 0.05 }}
             >
-              <Image
-                src={project.images[0].url}
-                alt={project.images[0].note}
-                fill
-                sizes="(max-width: 1279px) 100vw, 0px"
-                priority={index === 0}
-                className="object-contain p-3"
-              />
-            </div>
-
-            <div className="mt-5 flex items-start justify-between gap-3">
-              <div>
-                <p
-                  className="mb-2 text-[0.72rem] uppercase tracking-[0.28em]"
-                  style={{ color: project.accent }}
-                >
-                  {project.category}
-                </p>
-                <h3 className="max-w-[12ch] text-[2.45rem] leading-[0.95] tracking-[-0.06em] text-[#f2ede4]">
-                  {project.title}
-                </h3>
+              <div
+                className="project-stage relative aspect-[1.42] overflow-hidden rounded-[1.8rem]"
+                style={{
+                  background: `radial-gradient(circle_at_78%_18%, ${project.glow}, transparent 24%), linear-gradient(180deg, #090b0e, #0d1116)`,
+                }}
+              >
+                <div className="absolute inset-x-3 top-3 bottom-[4.85rem] overflow-hidden rounded-[1.15rem] bg-[#0b1018]">
+                  <Image
+                    src={project.images[0].url}
+                    alt={project.images[0].note}
+                    fill
+                    sizes="(max-width: 1279px) 100vw, 0px"
+                    priority={index === 0}
+                    className="object-contain p-3"
+                  />
+                </div>
+                <div className="absolute inset-x-4 bottom-4 flex items-center justify-between gap-3">
+                  <ProjectLinks project={project} compact />
+                </div>
               </div>
-              <span className="font-mono text-[1.1rem] tracking-[0.18em] text-white/28">
-                {project.number}
-              </span>
-            </div>
 
-            <p className="mt-4 text-base leading-relaxed text-[#ddd6cb]">
-              {project.summary}
-            </p>
-            <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-              {project.detail}
-            </p>
-            <p className="mt-4 text-sm leading-relaxed text-[#d7d0c4]">
-              {project.images[0].note}
-            </p>
-            <p className="mt-4 font-mono text-[0.72rem] uppercase tracking-[0.18em] text-[#bcb4a9]">
-              {project.tech.join(' / ')}
-            </p>
-            <div className="mt-5">
-              <ProjectLinks project={project} />
-            </div>
-          </motion.article>
-        ))}
-      </div>
+              <div className="mt-5 flex items-start justify-between gap-3">
+                <div>
+                  <p
+                    className="mb-2 text-[0.72rem] uppercase tracking-[0.28em]"
+                    style={{ color: project.accent }}
+                  >
+                    {project.category}
+                  </p>
+                  <h3 className="max-w-[12ch] text-[2.45rem] leading-[0.95] tracking-[-0.06em] text-[#f2ede4]">
+                    {project.title}
+                  </h3>
+                </div>
+                <span className="font-mono text-[1.1rem] tracking-[0.18em] text-white/28">
+                  {project.number}
+                </span>
+              </div>
+
+              <p className="mt-4 text-base leading-relaxed text-[#ddd6cb]">
+                {project.summary}
+              </p>
+              <p className="mt-4 text-sm leading-relaxed text-[#d7d0c4]">
+                {project.images[0].note}
+              </p>
+              <p className="mt-4 font-mono text-[0.72rem] uppercase tracking-[0.18em] text-[#bcb4a9]">
+                {project.tech.join(' / ')}
+              </p>
+            </motion.article>
+          ))}
+        </div>
+      ) : null}
     </section>
   )
 }
