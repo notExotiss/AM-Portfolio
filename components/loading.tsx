@@ -2,7 +2,6 @@
 
 import html2canvas from 'html2canvas'
 import * as htmlToImage from 'html-to-image'
-import { motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 
 type LoadingProps = {
@@ -189,6 +188,20 @@ const getLoaderPixelSizes = (compactLayout: boolean) => {
     : buildPixelSizes()
 }
 
+const shouldPreferHtml2Canvas = (compactLayout: boolean) => {
+  if (compactLayout) {
+    return true
+  }
+
+  if (typeof navigator === 'undefined') {
+    return false
+  }
+
+  return /Mac|iPhone|iPad|iPod/i.test(
+    `${navigator.platform} ${navigator.userAgent}`
+  )
+}
+
 const createFrameFromCanvas = (
   canvas: HTMLCanvasElement,
   scrollX: number,
@@ -214,20 +227,21 @@ const createFrameFromCanvas = (
 
 const configureCanvas = (
   canvas: HTMLCanvasElement,
-  width: number,
-  height: number,
-  dpr: number
+  cssWidth: number,
+  cssHeight: number,
+  pixelWidth: number,
+  pixelHeight: number
 ) => {
   const context = canvas.getContext('2d', { willReadFrequently: true })
   if (!context) {
     return null
   }
 
-  canvas.style.width = `${width}px`
-  canvas.style.height = `${height}px`
-  canvas.width = Math.max(1, Math.round(width * dpr))
-  canvas.height = Math.max(1, Math.round(height * dpr))
-  context.setTransform(dpr, 0, 0, dpr, 0, 0)
+  canvas.style.width = `${cssWidth}px`
+  canvas.style.height = `${cssHeight}px`
+  canvas.width = Math.max(1, pixelWidth)
+  canvas.height = Math.max(1, pixelHeight)
+  context.setTransform(1, 0, 0, 1, 0, 0)
   context.imageSmoothingEnabled = false
 
   return context
@@ -236,54 +250,66 @@ const configureCanvas = (
 const renderFrameToCanvas = ({
   context,
   dpr,
+  cssHeight,
+  cssWidth,
   frame,
-  height,
+  pixelHeight,
   pixelSize,
-  width,
+  pixelWidth,
 }: {
   context: CanvasRenderingContext2D
   dpr: number
+  cssHeight: number
+  cssWidth: number
   frame: LoaderFrame
-  height: number
+  pixelHeight: number
   pixelSize: number
-  width: number
+  pixelWidth: number
 }) => {
-  context.clearRect(0, 0, width, height)
+  context.clearRect(0, 0, pixelWidth, pixelHeight)
 
-  const sourceX = Math.max(0, Math.floor(frame.buffer.scrollX * dpr))
-  const sourceY = Math.max(0, Math.floor(frame.buffer.scrollY * dpr))
+  // The capture canvas already represents the current viewport. Reapplying
+  // page scroll offsets here can crop the reveal from a corner on some
+  // desktop browsers, especially on high-DPI displays.
+  const sourceX = 0
+  const sourceY = 0
+  const pixelSizePx = Math.max(1, Math.round(pixelSize * dpr))
 
-  if (pixelSize <= 1) {
+  if (pixelSizePx <= 1) {
     context.drawImage(
       frame.canvas,
       sourceX,
       sourceY,
-      width * dpr,
-      height * dpr,
+      frame.buffer.width,
+      frame.buffer.height,
       0,
       0,
-      width,
-      height
+      pixelWidth,
+      pixelHeight
     )
     return
   }
 
-  const cols = Math.ceil(width / pixelSize)
-  const rows = Math.ceil(height / pixelSize)
+  const cols = Math.ceil(pixelWidth / pixelSizePx)
+  const rows = Math.ceil(pixelHeight / pixelSizePx)
 
   for (let row = 0; row < rows; row += 1) {
     for (let col = 0; col < cols; col += 1) {
-      const pixelX = col * pixelSize
-      const pixelY = row * pixelSize
-      const sampleX = Math.floor(sourceX + (pixelX / width) * (width * dpr))
-      const sampleY = Math.floor(sourceY + (pixelY / height) * (height * dpr))
+      const pixelX = col * pixelSizePx
+      const pixelY = row * pixelSizePx
+      const sampleX = Math.floor(
+        sourceX + (pixelX / pixelWidth) * frame.buffer.width
+      )
+      const sampleY = Math.floor(
+        sourceY + (pixelY / pixelHeight) * frame.buffer.height
+      )
       const sampleWidth = Math.max(
         1,
-        Math.floor((pixelSize / width) * (width * dpr))
+        Math.floor((pixelSizePx / pixelWidth) * frame.buffer.width)
       )
       const sampleHeight = Math.max(
         1,
-        Math.floor((pixelSize / height) * (height * dpr))
+        Math.floor((pixelSizePx / pixelHeight) * frame.buffer.height)
       )
 
       const [red, green, blue] = averageColor(
@@ -295,7 +321,7 @@ const renderFrameToCanvas = ({
       )
 
       context.fillStyle = `rgb(${red},${green},${blue})`
-      context.fillRect(pixelX, pixelY, pixelSize + 1, pixelSize + 1)
+      context.fillRect(pixelX, pixelY, pixelSizePx + 1, pixelSizePx + 1)
     }
   }
 }
@@ -307,8 +333,6 @@ export default function Loading({
 }: Readonly<LoadingProps>) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationFrameRef = useRef<number>()
-  const completeTimeoutRef = useRef<number>()
-  const [fadeOut, setFadeOut] = useState(false)
   const [resolvedFrame, setResolvedFrame] = useState<LoaderFrame | null>(null)
 
   useEffect(() => {
@@ -329,13 +353,15 @@ export default function Loading({
     const width = document.documentElement.clientWidth
     const height = globalThis.innerHeight
     const dpr = getCaptureDpr(compactLayout)
-    const context = configureCanvas(canvas, width, height, dpr)
+    const pixelWidth = Math.max(1, Math.round(width * dpr))
+    const pixelHeight = Math.max(1, Math.round(height * dpr))
+    const context = configureCanvas(canvas, width, height, pixelWidth, pixelHeight)
 
     if (!context) {
       return
     }
 
-    context.clearRect(0, 0, width, height)
+    context.clearRect(0, 0, pixelWidth, pixelHeight)
   }, [compactLayout])
 
   useEffect(() => {
@@ -370,7 +396,7 @@ export default function Loading({
       try {
         const viewportWidth = document.documentElement.clientWidth
         const viewportHeight = globalThis.innerHeight
-        const captureStrategies = compactLayout
+        const captureStrategies = shouldPreferHtml2Canvas(compactLayout)
           ? [
               () =>
                 captureWithHtml2Canvas({
@@ -466,9 +492,17 @@ export default function Loading({
     }
 
     const dpr = getCaptureDpr(compactLayout)
-    const width = document.documentElement.clientWidth
-    const height = globalThis.innerHeight
-    const context = configureCanvas(canvas, width, height, dpr)
+    const cssWidth = document.documentElement.clientWidth
+    const cssHeight = globalThis.innerHeight
+    const pixelWidth = Math.max(1, Math.round(cssWidth * dpr))
+    const pixelHeight = Math.max(1, Math.round(cssHeight * dpr))
+    const context = configureCanvas(
+      canvas,
+      cssWidth,
+      cssHeight,
+      pixelWidth,
+      pixelHeight
+    )
     if (!context) {
       onComplete?.()
       return
@@ -489,11 +523,13 @@ export default function Loading({
 
       renderFrameToCanvas({
         context,
+        cssHeight,
+        cssWidth,
         dpr,
         frame: resolvedFrame,
-        height,
+        pixelHeight,
         pixelSize: pixelSizes[stepIndex],
-        width,
+        pixelWidth,
       })
 
       if (timestamp - stepStart >= stepDurations[stepIndex]) {
@@ -501,10 +537,9 @@ export default function Loading({
         stepStart = timestamp
 
         if (stepIndex >= pixelSizes.length) {
-          setFadeOut(true)
-          completeTimeoutRef.current = globalThis.setTimeout(() => {
+          animationFrameRef.current = globalThis.requestAnimationFrame(() => {
             onComplete?.()
-          }, 400) as unknown as number
+          })
           return
         }
       }
@@ -518,14 +553,11 @@ export default function Loading({
       if (animationFrameRef.current) {
         globalThis.cancelAnimationFrame(animationFrameRef.current)
       }
-      if (completeTimeoutRef.current) {
-        globalThis.clearTimeout(completeTimeoutRef.current)
-      }
     }
   }, [compactLayout, onComplete, resolvedFrame])
 
   return (
-    <motion.div
+    <div
       data-loader-root="true"
       data-html2canvas-ignore="true"
       className="pointer-events-none fixed inset-0 z-[110] bg-[#05070d]"
@@ -536,8 +568,6 @@ export default function Loading({
         position: 'fixed',
         zIndex: 110,
       }}
-      animate={{ opacity: fadeOut ? 0 : 1 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
     >
       <canvas
         ref={canvasRef}
@@ -553,6 +583,6 @@ export default function Loading({
           width: '100%',
         }}
       />
-    </motion.div>
+    </div>
   )
 }

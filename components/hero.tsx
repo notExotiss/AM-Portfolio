@@ -1,5 +1,7 @@
 'use client'
 
+import html2canvas from 'html2canvas'
+import * as htmlToImage from 'html-to-image'
 import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
@@ -55,6 +57,8 @@ type DecayPatch = {
   spreadY: number
   seed: number
 }
+
+const HERO_SNAPSHOT_TIMEOUT_MS = 1200
 
 const decayPatches: DecayPatch[] = [
   {
@@ -212,20 +216,6 @@ function buildClosedSoftPath(points: Point[], reverse = false) {
   return `${path} Z`
 }
 
-function buildRectPath(
-  left: number,
-  top: number,
-  right: number,
-  bottom: number,
-  reverse = false
-) {
-  if (reverse) {
-    return `M ${left.toFixed(2)} ${top.toFixed(2)} V ${bottom.toFixed(2)} H ${right.toFixed(2)} V ${top.toFixed(2)} H ${left.toFixed(2)} Z`
-  }
-
-  return `M ${left.toFixed(2)} ${top.toFixed(2)} H ${right.toFixed(2)} V ${bottom.toFixed(2)} H ${left.toFixed(2)} Z`
-}
-
 function buildPatchPath(
   patch: DecayPatch,
   progress: number,
@@ -237,7 +227,7 @@ function buildPatchPath(
   const appear = smoothstep(patch.enterStart - 0.015, patch.enterEnd + 0.03, progress)
 
   if (appear <= 0.001) {
-    return ''
+    return []
   }
 
   const settle = smoothstep(patch.enterStart + 0.015, 0.52, progress)
@@ -343,8 +333,7 @@ function buildPatchPath(
     })
   }
 
-  const softenedPoints = smoothLoopPoints(rawPoints)
-  return buildClosedSoftPath(softenedPoints, true)
+  return smoothLoopPoints(rawPoints)
 }
 
 function buildHeroMaskPath(
@@ -356,10 +345,49 @@ function buildHeroMaskPath(
 ) {
   return decayPatches
     .map((patch) =>
-      buildPatchPath(patch, progress, time, detailScale, expansionBoost, simplify)
+      buildClosedSoftPath(
+        buildPatchPath(
+          patch,
+          progress,
+          time,
+          detailScale,
+          expansionBoost,
+          simplify
+        ),
+        true
+      )
     )
     .filter(Boolean)
     .join(' ')
+}
+
+function traceClosedSoftPathOnCanvas(
+  context: CanvasRenderingContext2D,
+  points: Point[],
+  reverse = false
+) {
+  if (points.length < 3) {
+    return
+  }
+
+  const orderedPoints = reverse ? [...points].reverse() : points
+  const midpoints = orderedPoints.map((point, index) => {
+    const next = orderedPoints[(index + 1) % orderedPoints.length]
+    return {
+      x: (point.x + next.x) / 2,
+      y: (point.y + next.y) / 2,
+    }
+  })
+
+  context.moveTo(midpoints[midpoints.length - 1].x, midpoints[midpoints.length - 1].y)
+
+  for (let index = 0; index < orderedPoints.length; index += 1) {
+    const current = orderedPoints[index]
+    const midpoint = midpoints[index]
+    context.quadraticCurveTo(current.x, current.y, midpoint.x, midpoint.y)
+  }
+
+  context.closePath()
 }
 
 function generateParticles(count: number): Particle[] {
@@ -376,17 +404,119 @@ function generateParticles(count: number): Particle[] {
   }))
 }
 
+const waitForHeroCaptureWindow = async () => {
+  await new Promise<void>((resolve) => {
+    let frameCount = 0
+
+    const waitFrames = () => {
+      frameCount += 1
+      if (frameCount >= 2) {
+        resolve()
+        return
+      }
+
+      globalThis.requestAnimationFrame(waitFrames)
+    }
+
+    globalThis.requestAnimationFrame(waitFrames)
+  })
+
+  if ('fonts' in document) {
+    await document.fonts.ready
+  }
+}
+
+const getHeroSnapshotDpr = () => {
+  const dpr = globalThis.devicePixelRatio || 1
+  return Math.min(dpr, 1.2)
+}
+
+const captureHeroWithHtmlToImage = async ({
+  dpr,
+  target,
+  viewportHeight,
+  viewportWidth,
+}: {
+  dpr: number
+  target: HTMLElement
+  viewportHeight: number
+  viewportWidth: number
+}) => {
+  return Promise.race([
+    htmlToImage
+      .toCanvas(target, {
+        width: viewportWidth,
+        height: viewportHeight,
+        canvasWidth: Math.max(1, Math.round(viewportWidth * dpr)),
+        canvasHeight: Math.max(1, Math.round(viewportHeight * dpr)),
+        pixelRatio: dpr,
+        backgroundColor: '#05070d',
+        cacheBust: true,
+        includeQueryParams: true,
+        filter: (node: HTMLElement) => {
+          if (!node?.dataset) {
+            return true
+          }
+
+          return !('heroSnapshotOverlay' in node.dataset)
+        },
+      })
+      .catch(() => null),
+    new Promise<null>((resolve) => {
+      globalThis.setTimeout(() => resolve(null), HERO_SNAPSHOT_TIMEOUT_MS)
+    }),
+  ])
+}
+
+const captureHeroWithHtml2Canvas = async ({
+  dpr,
+  target,
+  viewportHeight,
+  viewportWidth,
+}: {
+  dpr: number
+  target: HTMLElement
+  viewportHeight: number
+  viewportWidth: number
+}) => {
+  return Promise.race([
+    html2canvas(target, {
+      allowTaint: true,
+      backgroundColor: '#05070d',
+      foreignObjectRendering: false,
+      height: viewportHeight,
+      ignoreElements: (node) =>
+        node instanceof HTMLElement && 'heroSnapshotOverlay' in node.dataset,
+      logging: false,
+      removeContainer: true,
+      scale: dpr,
+      useCORS: true,
+      width: viewportWidth,
+      windowHeight: viewportHeight,
+      windowWidth: viewportWidth,
+    }).catch(() => null),
+    new Promise<null>((resolve) => {
+      globalThis.setTimeout(() => resolve(null), HERO_SNAPSHOT_TIMEOUT_MS)
+    }),
+  ])
+}
+
 export default function Hero({
   compactLayout = false,
   interactiveReady = false,
+  onCompactRevealReady,
   sharedBackdrop = false,
 }: Readonly<{
   compactLayout?: boolean
   interactiveReady?: boolean
+  onCompactRevealReady?: (ready: boolean) => void
   sharedBackdrop?: boolean
 }>) {
   const sectionRef = useRef<HTMLElement>(null)
+  const captureRootRef = useRef<HTMLDivElement>(null)
   const copyRef = useRef<HTMLDivElement>(null)
+  const compactRevealCanvasRef = useRef<HTMLCanvasElement>(null)
+  const compactSnapshotSourceRef = useRef<HTMLCanvasElement | null>(null)
   const objectShellRef = useRef<HTMLDivElement>(null)
   const sweepOneRef = useRef<HTMLDivElement>(null)
   const sweepTwoRef = useRef<HTMLDivElement>(null)
@@ -410,11 +540,12 @@ export default function Hero({
   const maskId = useId().replace(/:/g, '-')
   const maskFilterId = `${maskId}-merge`
 
+  const [compactSnapshotReady, setCompactSnapshotReady] = useState(false)
   const [particles, setParticles] = useState<Particle[]>([])
   const [compactViewportHeight, setCompactViewportHeight] = useState(0)
 
   useEffect(() => {
-    setParticles(generateParticles(compactLayout ? 28 : 45))
+    setParticles(generateParticles(compactLayout ? 10 : 45))
   }, [compactLayout])
 
   useEffect(() => {
@@ -424,18 +555,140 @@ export default function Hero({
     }
 
     const syncViewportHeight = () => {
-      setCompactViewportHeight(window.innerHeight)
+      setCompactViewportHeight(
+        Math.round(window.visualViewport?.height ?? window.innerHeight)
+      )
     }
 
+    const visualViewport = window.visualViewport
     syncViewportHeight()
     window.addEventListener('resize', syncViewportHeight)
     window.addEventListener('orientationchange', syncViewportHeight)
+    visualViewport?.addEventListener('resize', syncViewportHeight)
+    visualViewport?.addEventListener('scroll', syncViewportHeight)
 
     return () => {
       window.removeEventListener('resize', syncViewportHeight)
       window.removeEventListener('orientationchange', syncViewportHeight)
+      visualViewport?.removeEventListener('resize', syncViewportHeight)
+      visualViewport?.removeEventListener('scroll', syncViewportHeight)
     }
   }, [compactLayout])
+
+  useEffect(() => {
+    if (!compactLayout) {
+      compactSnapshotSourceRef.current = null
+      setCompactSnapshotReady(false)
+      onCompactRevealReady?.(true)
+      return
+    }
+
+    let cancelled = false
+    let captureRafId = 0
+
+    const captureSnapshot = async () => {
+      const target = captureRootRef.current
+      if (!target) {
+        return
+      }
+
+      onCompactRevealReady?.(false)
+      target.style.removeProperty('opacity')
+      target.style.removeProperty('visibility')
+      setCompactSnapshotReady(false)
+      document.documentElement.classList.add('loader-capture')
+
+      try {
+        await waitForHeroCaptureWindow()
+
+        if (cancelled) {
+          return
+        }
+
+        const rect = target.getBoundingClientRect()
+        const viewportWidth = Math.max(
+          1,
+          Math.round(window.visualViewport?.width ?? rect.width)
+        )
+        const viewportHeight = Math.max(
+          1,
+          Math.round(window.visualViewport?.height ?? rect.height)
+        )
+        const dpr = getHeroSnapshotDpr()
+
+        const strategies = [
+          () =>
+            captureHeroWithHtml2Canvas({
+              dpr,
+              target,
+              viewportHeight,
+              viewportWidth,
+            }),
+          () =>
+            captureHeroWithHtmlToImage({
+              dpr,
+              target,
+              viewportHeight,
+              viewportWidth,
+            }),
+        ]
+
+        let snapshotCanvas: HTMLCanvasElement | null = null
+        for (const captureFrame of strategies) {
+          snapshotCanvas = await captureFrame()
+          if (snapshotCanvas || cancelled) {
+            break
+          }
+        }
+
+        if (cancelled) {
+          return
+        }
+
+        if (!snapshotCanvas) {
+          compactSnapshotSourceRef.current = null
+          onCompactRevealReady?.(false)
+          return
+        }
+
+        compactSnapshotSourceRef.current = snapshotCanvas
+        setCompactSnapshotReady(true)
+        onCompactRevealReady?.(true)
+      } finally {
+        document.documentElement.classList.remove('loader-capture')
+      }
+    }
+
+    const queueCapture = () => {
+      if (captureRafId) {
+        window.cancelAnimationFrame(captureRafId)
+      }
+
+      captureRafId = window.requestAnimationFrame(() => {
+        captureRafId = 0
+        captureSnapshot()
+      })
+    }
+
+    queueCapture()
+
+    const visualViewport = window.visualViewport
+    window.addEventListener('orientationchange', queueCapture)
+    visualViewport?.addEventListener('resize', queueCapture)
+
+    return () => {
+      cancelled = true
+      compactSnapshotSourceRef.current = null
+      setCompactSnapshotReady(false)
+      onCompactRevealReady?.(false)
+      document.documentElement.classList.remove('loader-capture')
+      window.removeEventListener('orientationchange', queueCapture)
+      visualViewport?.removeEventListener('resize', queueCapture)
+      if (captureRafId) {
+        window.cancelAnimationFrame(captureRafId)
+      }
+    }
+  }, [compactLayout, onCompactRevealReady, sharedBackdrop])
 
   const handleMagnetic = useCallback(
     (event: ReactPointerEvent<HTMLElement>, ref: React.RefObject<HTMLElement | null>) => {
@@ -475,6 +728,10 @@ export default function Hero({
       const bandItems = gsap.utils.toArray<HTMLElement>('[data-hero-band]')
       const routeItems = gsap.utils.toArray<SVGPathElement>('[data-hero-route-line]')
 
+      if (compactLayout) {
+        return
+      }
+
       if (sweepOneRef.current) {
         gsap.to(sweepOneRef.current, {
           xPercent: 24,
@@ -493,10 +750,6 @@ export default function Hero({
           repeat: -1,
           yoyo: true,
         })
-      }
-
-      if (compactLayout) {
-        return
       }
 
       orbitItems.forEach((item, index) => {
@@ -539,13 +792,23 @@ export default function Hero({
   }, [compactLayout, interactiveReady])
 
   useIsomorphicLayoutEffect(() => {
+    const captureRoot = captureRootRef.current
+    const compactRevealCanvas = compactRevealCanvasRef.current
+    const compactSnapshotSource = compactSnapshotSourceRef.current
     const section = sectionRef.current
     const copy = copyRef.current
     const objectShell = objectShellRef.current
     const shell = shellRef.current
     const visualStack = visualStackRef.current
 
-    if (!section || !copy || !objectShell || !shell || !visualStack) {
+    if (
+      !section ||
+      !copy ||
+      !objectShell ||
+      !shell ||
+      !visualStack ||
+      (compactLayout && !captureRoot)
+    ) {
       return
     }
 
@@ -568,28 +831,135 @@ export default function Hero({
       }),
     }
 
-    let previousPath = ''
-    const updateMobileRevealState = () => {
-      const revealProgress = clamp(progressRef.current * 1.18, 0, 1)
-      const pathTime = revealProgress * 6.2
-      const expansionBoost =
-        1 + smoothstep(0.48, 1, revealProgress) * 1.2
-      const path = buildHeroMaskPath(
-        revealProgress,
-        pathTime,
-        0.72,
-        expansionBoost
+    let previousDesktopPath = ''
+    const syncDesktopRevealPath = (path: string) => {
+      if (path !== previousDesktopPath) {
+        maskPathRef.current?.setAttribute('d', path)
+        previousDesktopPath = path
+      }
+    }
+
+    const updateVisualMask = (path: string) => {
+      const nextMaskImage = path ? `url(#${maskId})` : 'none'
+      visualStack.style.maskImage = nextMaskImage
+      visualStack.style.maskPosition = 'center'
+      visualStack.style.maskRepeat = 'no-repeat'
+      visualStack.style.maskSize = '100% 100%'
+      visualStack.style.webkitMaskImage = nextMaskImage
+      visualStack.style.webkitMaskPosition = 'center'
+      visualStack.style.webkitMaskRepeat = 'no-repeat'
+      visualStack.style.webkitMaskSize = '100% 100%'
+    }
+
+    let previousCompactDrawKey = ''
+    const drawCompactRevealFrame = (revealProgress: number) => {
+      if (!compactRevealCanvas || !compactSnapshotSource) {
+        return false
+      }
+
+      const viewportWidth = Math.max(
+        1,
+        Math.round(window.visualViewport?.width ?? window.innerWidth)
       )
-      shell.style.opacity = '1'
-      visualStack.style.visibility = revealProgress >= 0.985 ? 'hidden' : 'visible'
+      const viewportHeight = Math.max(
+        1,
+        Math.round(window.visualViewport?.height ?? window.innerHeight)
+      )
+      const dpr = getHeroSnapshotDpr()
+      const pixelWidth = Math.max(1, Math.round(viewportWidth * dpr))
+      const pixelHeight = Math.max(1, Math.round(viewportHeight * dpr))
+      const drawKey = `${pixelWidth}:${pixelHeight}:${revealProgress.toFixed(4)}`
+
+      if (drawKey === previousCompactDrawKey) {
+        return true
+      }
+
+      previousCompactDrawKey = drawKey
+
+      if (
+        compactRevealCanvas.width !== pixelWidth ||
+        compactRevealCanvas.height !== pixelHeight
+      ) {
+        compactRevealCanvas.width = pixelWidth
+        compactRevealCanvas.height = pixelHeight
+      }
+
+      compactRevealCanvas.style.width = `${viewportWidth}px`
+      compactRevealCanvas.style.height = `${viewportHeight}px`
+
+      const context = compactRevealCanvas.getContext('2d')
+      if (!context) {
+        return false
+      }
+
+      context.save()
+      context.setTransform(pixelWidth / 100, 0, 0, pixelHeight / 100, 0, 0)
+      context.clearRect(0, 0, 100, 100)
+      context.globalCompositeOperation = 'source-over'
+      context.drawImage(compactSnapshotSource, 0, 0, 100, 100)
+      context.globalCompositeOperation = 'destination-out'
+      context.beginPath()
+
+      decayPatches.forEach((patch) => {
+        const points = buildPatchPath(patch, revealProgress, revealProgress * 6.2)
+        traceClosedSoftPathOnCanvas(context, points, true)
+      })
+
+      context.fillStyle = '#000'
+      context.fill()
+      context.restore()
+
+      return true
+    }
+
+    const resetCompactRevealState = (clearCanvas = false) => {
+      captureRoot?.style.removeProperty('opacity')
+      captureRoot?.style.removeProperty('visibility')
+      if (compactRevealCanvas) {
+        compactRevealCanvas.style.opacity = '0'
+        compactRevealCanvas.style.visibility = 'hidden'
+        if (clearCanvas) {
+          const context = compactRevealCanvas.getContext('2d')
+          if (context) {
+            context.setTransform(1, 0, 0, 1, 0, 0)
+            context.clearRect(0, 0, compactRevealCanvas.width, compactRevealCanvas.height)
+          }
+          previousCompactDrawKey = ''
+        }
+      }
+    }
+
+    const updateMobileRevealState = () => {
       copy.style.opacity = ''
       copy.style.transform = ''
       objectShell.style.opacity = ''
+      shell.style.opacity = '1'
+      visualStack.style.opacity = '1'
+      visualStack.style.visibility = 'visible'
+      visualStack.style.maskImage = 'none'
+      visualStack.style.webkitMaskImage = 'none'
 
-      if (path !== previousPath) {
-        maskPathRef.current?.setAttribute('d', path)
-        previousPath = path
+      if (!compactSnapshotReady || !compactRevealCanvas || !compactSnapshotSource) {
+        resetCompactRevealState(true)
+        return
       }
+
+      const revealProgress = clamp(progressRef.current * 1.18, 0, 1)
+      const overlayStart = Math.max(0.024, decayPatches[0].enterStart - 0.01)
+      const overlayVisible = revealProgress > overlayStart
+      const overlayOpacity = overlayVisible
+        ? 1 - smoothstep(0.986, 0.998, revealProgress)
+        : 0
+
+      if (captureRoot) {
+        captureRoot.style.opacity = overlayVisible ? '0' : '1'
+        captureRoot.style.visibility = overlayVisible ? 'hidden' : 'visible'
+      }
+
+      compactRevealCanvas.style.opacity = overlayOpacity.toFixed(4)
+      compactRevealCanvas.style.visibility =
+        overlayOpacity <= 0.002 ? 'hidden' : 'visible'
+      drawCompactRevealFrame(revealProgress)
     }
 
     const updateRevealState = () => {
@@ -601,7 +971,7 @@ export default function Hero({
       copy.style.opacity = ''
       copy.style.transform = ''
       objectShell.style.opacity = ''
-      visualStack.style.visibility = 'visible'
+      resetCompactRevealState()
 
       const revealProgress = clamp(progressRef.current * 1.18, 0, 1)
       if (!maskPathRef.current) {
@@ -609,16 +979,14 @@ export default function Hero({
       }
 
       const path = buildHeroMaskPath(revealProgress, gsap.ticker.time)
-      const shellOpacity = 1 - smoothstep(0.988, 0.9985, revealProgress)
+      const stackOpacity = 1 - smoothstep(0.986, 0.998, revealProgress)
 
-      shell.style.opacity = shellOpacity.toFixed(4)
+      shell.style.opacity = '1'
+      visualStack.style.opacity = stackOpacity.toFixed(4)
+      visualStack.style.visibility = stackOpacity <= 0.002 ? 'hidden' : 'visible'
+      updateVisualMask(path)
 
-      if (path === previousPath) {
-        return
-      }
-
-      maskPathRef.current.setAttribute('d', path)
-      previousPath = path
+      syncDesktopRevealPath(path)
     }
 
     updateRevealState()
@@ -627,7 +995,9 @@ export default function Hero({
     }
 
     const getRevealDistance = () => {
-      const viewportHeight = window.innerHeight
+      const viewportHeight = compactLayout
+        ? Math.round(window.visualViewport?.height ?? window.innerHeight)
+        : window.innerHeight
       const availableScroll = section.offsetHeight - viewportHeight
 
       if (compactLayout) {
@@ -824,9 +1194,10 @@ export default function Hero({
       if (!compactLayout) {
         gsap.ticker.remove(updateRevealState)
       }
+      resetCompactRevealState(true)
       ctx.revert()
     }
-  }, [compactLayout, sharedBackdrop])
+  }, [compactLayout, compactSnapshotReady, compactViewportHeight, maskId, sharedBackdrop])
 
   const updatePointer = (x: number, y: number) => {
     pointerRef.current = { x, y }
@@ -859,20 +1230,15 @@ export default function Hero({
     compactLayout && compactViewportHeight
       ? `${compactViewportHeight}px`
       : undefined
-  const mobileMaskStyle = compactLayout
-    ? ({
-        mask: `url(#${maskId}) center / 100% 100% no-repeat`,
-        WebkitMask: `url(#${maskId}) center / 100% 100% no-repeat`,
-      } as CSSProperties)
-    : undefined
-
   return (
     <section
       id="home"
       ref={sectionRef}
       onPointerMove={compactLayout ? undefined : handlePointerMove}
       onPointerLeave={compactLayout ? undefined : handlePointerLeave}
-      className={`hero-scene pointer-events-none relative z-10 scroll-mt-28 ${
+      className={`hero-scene relative z-10 scroll-mt-28 ${
+        compactLayout ? 'pointer-events-auto ' : 'pointer-events-none '
+      }${
         compactLayout ? 'min-h-0' : 'min-h-[136svh] sm:min-h-[142svh] md:min-h-[148svh]'
       }`}
       style={
@@ -886,7 +1252,9 @@ export default function Hero({
       }
     >
       <div
-        className={`pointer-events-none sticky top-0 overflow-hidden relative ${
+        className={`sticky top-0 overflow-hidden relative ${
+          compactLayout ? 'pointer-events-auto ' : 'pointer-events-none '
+        }${
           compactLayout ? '' : 'h-[100svh]'
         }`}
         style={compactStickyHeight ? { height: compactStickyHeight } : undefined}
@@ -957,164 +1325,171 @@ export default function Hero({
           </defs>
         </svg>
 
-        <div
-          ref={visualStackRef}
-          className="absolute inset-0"
-          style={mobileMaskStyle}
-        >
+        {compactLayout ? (
+          <canvas
+            ref={compactRevealCanvasRef}
+            data-hero-snapshot-overlay="true"
+            data-html2canvas-ignore="true"
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-40 h-full w-full"
+            style={{
+              opacity: 0,
+              visibility: 'hidden',
+              contain: 'paint',
+              transform: 'translateZ(0)',
+              willChange: 'opacity',
+            }}
+          />
+        ) : null}
+
+        <div ref={captureRootRef} className="absolute inset-0">
           <div
-            ref={shellRef}
-            className="hero-cutout-shell pointer-events-none absolute inset-0 z-10"
-            style={
-              compactLayout
-                ? undefined
-                : {
-                    maskImage: `url(#${maskId})`,
-                    maskPosition: 'center',
-                    maskRepeat: 'no-repeat',
-                    maskSize: '100% 100%',
-                    WebkitMaskImage: `url(#${maskId})`,
-                    WebkitMaskPosition: 'center',
-                    WebkitMaskRepeat: 'no-repeat',
-                    WebkitMaskSize: '100% 100%',
-                  }
-            }
+            ref={visualStackRef}
+            className="absolute inset-0"
           >
-            <div className="hero-paper absolute inset-0 z-[1]" />
-            <div className="hero-scene-backdrop absolute inset-0 z-[1]" />
             <div
-              data-hero-grid
-              className="hero-track-grid absolute inset-0 z-[1] opacity-[0.25]"
-            />
-            <div className="absolute inset-0 z-[2] pointer-events-none overflow-hidden">
+              ref={shellRef}
+              className="hero-cutout-shell pointer-events-none absolute inset-0 z-10"
+            >
+              <div className="hero-paper absolute inset-0 z-[1]" />
+              <div className="hero-scene-backdrop absolute inset-0 z-[1]" />
               <div
-                className="absolute inset-0 pointer-events-none z-[3] opacity-60"
-                style={{
-                  background:
-                    'radial-gradient(circle 600px at calc(var(--glow-x) * 1%) calc(var(--glow-y) * 1%), rgba(103,221,255,0.06), transparent)',
-                }}
+                data-hero-grid
+                className="hero-track-grid absolute inset-0 z-[1] opacity-[0.25]"
               />
-
-              <div
-                className="absolute inset-0 pointer-events-none z-[3] opacity-40"
-                style={{
-                  background:
-                    'radial-gradient(ellipse 800px 500px at 75% 65%, rgba(255,138,91,0.05), transparent)',
-                }}
-              />
-
-              <div
-                className="absolute top-1/2 left-1/2 z-[4] -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-                aria-hidden="true"
-              >
+              <div className="absolute inset-0 z-[2] pointer-events-none overflow-hidden">
                 <div
-                  className="h-[min(70vw,50rem)] w-[min(70vw,50rem)] rounded-full border border-dashed border-white/[0.04]"
+                  className="absolute inset-0 pointer-events-none z-[3] opacity-60"
                   style={{
-                    animationName: 'spin',
-                    animationDuration: '90s',
-                    animationTimingFunction: 'linear',
-                    animationIterationCount: 'infinite',
-                    animationPlayState: interactiveReady ? 'running' : 'paused',
+                    background:
+                      'radial-gradient(circle 600px at calc(var(--glow-x) * 1%) calc(var(--glow-y) * 1%), rgba(103,221,255,0.06), transparent)',
                   }}
                 />
-              </div>
-              <div
-                className="absolute top-1/2 left-1/2 z-[4] -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-                aria-hidden="true"
-              >
+
                 <div
-                  className="h-[min(50vw,36rem)] w-[min(50vw,36rem)] rounded-full border border-white/[0.03]"
+                  className="absolute inset-0 pointer-events-none z-[3] opacity-40"
                   style={{
-                    animationName: 'spin',
-                    animationDuration: '120s',
-                    animationTimingFunction: 'linear',
-                    animationIterationCount: 'infinite',
-                    animationDirection: 'reverse',
-                    animationPlayState: interactiveReady ? 'running' : 'paused',
+                    background:
+                      'radial-gradient(ellipse 800px 500px at 75% 65%, rgba(255,138,91,0.05), transparent)',
                   }}
                 />
-              </div>
 
-              <div
-                ref={particleFieldRef}
-                className="absolute inset-0 z-[5] pointer-events-none"
-                aria-hidden="true"
-              >
-                {particles.map((particle) => {
-                  const colors = ['var(--accent-cool)', 'var(--accent-warm)', '#fbf5ea']
-                  return (
-                    <div
-                      key={`particle-${particle.id}`}
-                      data-hero-particle
-                      className="absolute rounded-full"
-                      style={{
-                        left: `${particle.x}%`,
-                        top: `${particle.y}%`,
-                        width: `${particle.size}px`,
-                        height: `${particle.size}px`,
-                        opacity: particle.opacity,
-                        background: colors[particle.id % 3],
-                        filter: particle.blur > 0 ? `blur(${particle.blur}px)` : undefined,
-                        animationName: 'float-soft-a',
-                        animationDuration: `${particle.duration}s`,
-                        animationTimingFunction: 'ease-in-out',
-                        animationDelay: `${particle.delay}s`,
-                        animationIterationCount: 'infinite',
-                        animationPlayState: interactiveReady ? 'running' : 'paused',
-                        willChange: 'transform',
-                      }}
-                    />
-                  )
-                })}
-              </div>
+                <div
+                  className="absolute top-1/2 left-1/2 z-[4] -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                  aria-hidden="true"
+                >
+                  <div
+                    className="h-[min(70vw,50rem)] w-[min(70vw,50rem)] rounded-full border border-dashed border-white/[0.04]"
+                    style={{
+                      animationName: 'spin',
+                      animationDuration: '90s',
+                      animationTimingFunction: 'linear',
+                      animationIterationCount: 'infinite',
+                      animationPlayState:
+                        compactLayout || !interactiveReady ? 'paused' : 'running',
+                    }}
+                  />
+                </div>
+                <div
+                  className="absolute top-1/2 left-1/2 z-[4] -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                  aria-hidden="true"
+                >
+                  <div
+                    className="h-[min(50vw,36rem)] w-[min(50vw,36rem)] rounded-full border border-white/[0.03]"
+                    style={{
+                      animationName: 'spin',
+                      animationDuration: '120s',
+                      animationTimingFunction: 'linear',
+                      animationIterationCount: 'infinite',
+                      animationDirection: 'reverse',
+                      animationPlayState:
+                        compactLayout || !interactiveReady ? 'paused' : 'running',
+                    }}
+                  />
+                </div>
 
-              <svg
-                aria-hidden="true"
-                className="absolute inset-0 h-full w-full opacity-[0.7]"
-                viewBox="0 0 1600 900"
-                preserveAspectRatio="none"
-              >
-                <path
-                  data-hero-route-line
-                  d="M-220 176 C 74 54, 346 68, 612 172 S 1188 336, 1820 114"
-                  className="hero-route-line"
-                  fill="none"
-                  strokeDasharray="12 10"
-                  strokeLinecap="round"
-                  strokeWidth={1.15}
-                  stroke="rgba(143, 229, 255, 0.24)"
-                />
-                <path
-                  data-hero-route-line
-                  d="M-240 664 C 88 548, 402 728, 760 662 S 1264 512, 1820 642"
-                  className="hero-route-line"
-                  fill="none"
-                  strokeDasharray="12 10"
-                  strokeLinecap="round"
-                  strokeWidth={1.15}
-                  stroke="rgba(255, 138, 91, 0.22)"
-                />
-                <path
-                  data-hero-route-line
-                  d="M42 -84 C 212 124, 296 364, 238 986"
-                  className="hero-route-line"
-                  fill="none"
-                  strokeDasharray="12 10"
-                  strokeLinecap="round"
-                  strokeWidth={1.05}
-                  stroke="rgba(251, 245, 234, 0.12)"
-                />
-                <path
-                  data-hero-route-line
-                  d="M1542 -96 C 1376 116, 1280 372, 1348 988"
-                  className="hero-route-line"
-                  fill="none"
-                  strokeDasharray="12 10"
-                  strokeLinecap="round"
-                  strokeWidth={1.05}
-                  stroke="rgba(251, 245, 234, 0.12)"
-                />
-              </svg>
+                <div
+                  ref={particleFieldRef}
+                  className="absolute inset-0 z-[5] pointer-events-none"
+                  aria-hidden="true"
+                >
+                  {particles.map((particle) => {
+                    const colors = ['var(--accent-cool)', 'var(--accent-warm)', '#fbf5ea']
+                    return (
+                      <div
+                        key={`particle-${particle.id}`}
+                        data-hero-particle
+                        className="absolute rounded-full"
+                        style={{
+                          left: `${particle.x}%`,
+                          top: `${particle.y}%`,
+                          width: `${particle.size}px`,
+                          height: `${particle.size}px`,
+                          opacity: particle.opacity,
+                          background: colors[particle.id % 3],
+                          filter: particle.blur > 0 ? `blur(${particle.blur}px)` : undefined,
+                          animationName: 'float-soft-a',
+                          animationDuration: `${particle.duration}s`,
+                          animationTimingFunction: 'ease-in-out',
+                          animationDelay: `${particle.delay}s`,
+                          animationIterationCount: 'infinite',
+                          animationPlayState:
+                            compactLayout || !interactiveReady ? 'paused' : 'running',
+                          willChange: 'transform',
+                        }}
+                      />
+                    )
+                  })}
+                </div>
+
+                <svg
+                  aria-hidden="true"
+                  className="absolute inset-0 h-full w-full opacity-[0.7]"
+                  viewBox="0 0 1600 900"
+                  preserveAspectRatio="none"
+                >
+                  <path
+                    data-hero-route-line
+                    d="M-220 176 C 74 54, 346 68, 612 172 S 1188 336, 1820 114"
+                    className="hero-route-line"
+                    fill="none"
+                    strokeDasharray="12 10"
+                    strokeLinecap="round"
+                    strokeWidth={1.15}
+                    stroke="rgba(143, 229, 255, 0.24)"
+                  />
+                  <path
+                    data-hero-route-line
+                    d="M-240 664 C 88 548, 402 728, 760 662 S 1264 512, 1820 642"
+                    className="hero-route-line"
+                    fill="none"
+                    strokeDasharray="12 10"
+                    strokeLinecap="round"
+                    strokeWidth={1.15}
+                    stroke="rgba(255, 138, 91, 0.22)"
+                  />
+                  <path
+                    data-hero-route-line
+                    d="M42 -84 C 212 124, 296 364, 238 986"
+                    className="hero-route-line"
+                    fill="none"
+                    strokeDasharray="12 10"
+                    strokeLinecap="round"
+                    strokeWidth={1.05}
+                    stroke="rgba(251, 245, 234, 0.12)"
+                  />
+                  <path
+                    data-hero-route-line
+                    d="M1542 -96 C 1376 116, 1280 372, 1348 988"
+                    className="hero-route-line"
+                    fill="none"
+                    strokeDasharray="12 10"
+                    strokeLinecap="round"
+                    strokeWidth={1.05}
+                    stroke="rgba(251, 245, 234, 0.12)"
+                  />
+                </svg>
+              </div>
             </div>
           </div>
 

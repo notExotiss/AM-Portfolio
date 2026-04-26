@@ -25,13 +25,17 @@ const skills = [
 
 export default function About({
   sharedBackdrop = false,
+  sectionId = 'about',
+  staticPreview = false,
 }: Readonly<{
   sharedBackdrop?: boolean
+  sectionId?: string
+  staticPreview?: boolean
 }>) {
   const sectionRef = useRef<HTMLElement>(null)
 
   useIsomorphicLayoutEffect(() => {
-    if (sharedBackdrop) {
+    if (staticPreview) {
       return
     }
 
@@ -109,25 +113,27 @@ export default function About({
         },
       })
 
-      const flowLines = gsap.utils.toArray<SVGPathElement>('[data-flow-line]')
-      flowLines.forEach((line, index) => {
-        const lineLength = line.getTotalLength()
-        gsap.set(line, {
-          strokeDasharray: lineLength,
-          strokeDashoffset: lineLength,
+      if (!sharedBackdrop) {
+        const flowLines = gsap.utils.toArray<SVGPathElement>('[data-flow-line]')
+        flowLines.forEach((line, index) => {
+          const lineLength = line.getTotalLength()
+          gsap.set(line, {
+            strokeDasharray: lineLength,
+            strokeDashoffset: lineLength,
+          })
+          gsap.to(line, {
+            strokeDashoffset: 0,
+            duration: 3 + index * 0.5,
+            ease: 'power1.inOut',
+            scrollTrigger: {
+              trigger: section,
+              start: 'top 80%',
+              end: 'bottom 20%',
+              scrub: 1.5,
+            },
+          })
         })
-        gsap.to(line, {
-          strokeDashoffset: 0,
-          duration: 3 + index * 0.5,
-          ease: 'power1.inOut',
-          scrollTrigger: {
-            trigger: section,
-            start: 'top 80%',
-            end: 'bottom 20%',
-            scrub: 1.5,
-          },
-        })
-      })
+      }
 
       const skillChips = gsap.utils.toArray<HTMLElement>('[data-skill-chip]')
       gsap.fromTo(
@@ -151,12 +157,13 @@ export default function About({
     return () => {
       ctx.revert()
     }
-  }, [sharedBackdrop])
+  }, [sharedBackdrop, staticPreview])
 
   return (
     <section
-      id="about"
+      id={sectionId}
       ref={sectionRef}
+      aria-hidden={staticPreview || undefined}
       className={cn(
         'about-stage relative overflow-visible scroll-mt-28 pt-16 pb-24 sm:pt-20 sm:pb-28 lg:py-32',
         sharedBackdrop ? 'about-stage--shared' : 'paper-stage'

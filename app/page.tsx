@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import Contact from '@/components/contact'
 import HeroAboutTransition from '@/components/hero-about-transition'
-import InteractiveCursor from '@/components/interactive-cursor'
 import Loading from '@/components/loading'
 import Portfolio from '@/components/portfolio'
 import { ResumeModal } from '@/components/resume-modal'
+import { ScrollTrigger } from '@/lib/gsap'
 import { useCompactLayout } from '@/lib/use-compact-layout'
 
 const structuredData = {
@@ -93,6 +93,30 @@ export default function Home() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!loaderDone) {
+      return
+    }
+
+    let cancelled = false
+    const refresh = () => {
+      if (cancelled) {
+        return
+      }
+
+      ScrollTrigger.refresh()
+    }
+
+    const rafOne = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(refresh)
+    })
+
+    return () => {
+      cancelled = true
+      window.cancelAnimationFrame(rafOne)
+    }
+  }, [compactLayout, loaderDone])
+
   const readyForLoader = hydrated && fontsReady && layoutReady
   const showLoader = !loaderDone
 
@@ -106,13 +130,14 @@ export default function Home() {
       <div data-page-capture="true">
         <div className="site-background" aria-hidden="true" />
         <div className="noise-layer" aria-hidden="true" />
-        <InteractiveCursor />
 
         <main
+          data-page-shell="true"
           className="relative overflow-x-clip"
           style={{
-            opacity: hydrated ? 1 : 0,
+            opacity: hydrated && loaderDone ? 1 : 0,
             pointerEvents: loaderDone ? 'auto' : 'none',
+            visibility: hydrated && loaderDone ? 'visible' : 'hidden',
           }}
         >
           <HeroAboutTransition
