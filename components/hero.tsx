@@ -426,9 +426,9 @@ const waitForHeroCaptureWindow = async () => {
   }
 }
 
-const getHeroSnapshotDpr = () => {
+const getHeroSnapshotDpr = (compactLayout: boolean) => {
   const dpr = globalThis.devicePixelRatio || 1
-  return Math.min(dpr, 1.2)
+  return Math.min(dpr, compactLayout ? 1 : 1.3)
 }
 
 const captureHeroWithHtmlToImage = async ({
@@ -614,7 +614,7 @@ export default function Hero({
           1,
           Math.round(window.visualViewport?.height ?? rect.height)
         )
-        const dpr = getHeroSnapshotDpr()
+        const dpr = getHeroSnapshotDpr(compactLayout)
 
         const strategies = [
           () =>
@@ -802,12 +802,12 @@ export default function Hero({
     const visualStack = visualStackRef.current
 
     if (
+      !captureRoot ||
       !section ||
       !copy ||
       !objectShell ||
       !shell ||
-      !visualStack ||
-      (compactLayout && !captureRoot)
+      !visualStack
     ) {
       return
     }
@@ -840,15 +840,19 @@ export default function Hero({
     }
 
     const updateVisualMask = (path: string) => {
+      if (!captureRoot) {
+        return
+      }
+
       const nextMaskImage = path ? `url(#${maskId})` : 'none'
-      visualStack.style.maskImage = nextMaskImage
-      visualStack.style.maskPosition = 'center'
-      visualStack.style.maskRepeat = 'no-repeat'
-      visualStack.style.maskSize = '100% 100%'
-      visualStack.style.webkitMaskImage = nextMaskImage
-      visualStack.style.webkitMaskPosition = 'center'
-      visualStack.style.webkitMaskRepeat = 'no-repeat'
-      visualStack.style.webkitMaskSize = '100% 100%'
+      captureRoot.style.maskImage = nextMaskImage
+      captureRoot.style.maskPosition = 'center'
+      captureRoot.style.maskRepeat = 'no-repeat'
+      captureRoot.style.maskSize = '100% 100%'
+      captureRoot.style.webkitMaskImage = nextMaskImage
+      captureRoot.style.webkitMaskPosition = 'center'
+      captureRoot.style.webkitMaskRepeat = 'no-repeat'
+      captureRoot.style.webkitMaskSize = '100% 100%'
     }
 
     let previousCompactDrawKey = ''
@@ -865,10 +869,10 @@ export default function Hero({
         1,
         Math.round(window.visualViewport?.height ?? window.innerHeight)
       )
-      const dpr = getHeroSnapshotDpr()
+      const dpr = getHeroSnapshotDpr(true)
       const pixelWidth = Math.max(1, Math.round(viewportWidth * dpr))
       const pixelHeight = Math.max(1, Math.round(viewportHeight * dpr))
-      const drawKey = `${pixelWidth}:${pixelHeight}:${revealProgress.toFixed(4)}`
+      const drawKey = `${pixelWidth}:${pixelHeight}:${revealProgress.toFixed(3)}`
 
       if (drawKey === previousCompactDrawKey) {
         return true
@@ -915,6 +919,14 @@ export default function Hero({
     const resetCompactRevealState = (clearCanvas = false) => {
       captureRoot?.style.removeProperty('opacity')
       captureRoot?.style.removeProperty('visibility')
+      captureRoot?.style.removeProperty('mask-image')
+      captureRoot?.style.removeProperty('mask-position')
+      captureRoot?.style.removeProperty('mask-repeat')
+      captureRoot?.style.removeProperty('mask-size')
+      captureRoot?.style.removeProperty('-webkit-mask-image')
+      captureRoot?.style.removeProperty('-webkit-mask-position')
+      captureRoot?.style.removeProperty('-webkit-mask-repeat')
+      captureRoot?.style.removeProperty('-webkit-mask-size')
       if (compactRevealCanvas) {
         compactRevealCanvas.style.opacity = '0'
         compactRevealCanvas.style.visibility = 'hidden'
@@ -936,8 +948,6 @@ export default function Hero({
       shell.style.opacity = '1'
       visualStack.style.opacity = '1'
       visualStack.style.visibility = 'visible'
-      visualStack.style.maskImage = 'none'
-      visualStack.style.webkitMaskImage = 'none'
 
       if (!compactSnapshotReady || !compactRevealCanvas || !compactSnapshotSource) {
         resetCompactRevealState(true)
@@ -978,21 +988,18 @@ export default function Hero({
         return
       }
 
-      const path = buildHeroMaskPath(revealProgress, gsap.ticker.time)
+      const path = buildHeroMaskPath(revealProgress, revealProgress * 6.2)
       const stackOpacity = 1 - smoothstep(0.986, 0.998, revealProgress)
 
       shell.style.opacity = '1'
-      visualStack.style.opacity = stackOpacity.toFixed(4)
-      visualStack.style.visibility = stackOpacity <= 0.002 ? 'hidden' : 'visible'
+      captureRoot.style.opacity = stackOpacity.toFixed(4)
+      captureRoot.style.visibility = stackOpacity <= 0.002 ? 'hidden' : 'visible'
       updateVisualMask(path)
 
       syncDesktopRevealPath(path)
     }
 
     updateRevealState()
-    if (!compactLayout) {
-      gsap.ticker.add(updateRevealState)
-    }
 
     const getRevealDistance = () => {
       const viewportHeight = compactLayout
@@ -1056,7 +1063,8 @@ export default function Hero({
             start: 'top top',
             end: () => `+=${getRevealDistance()}`,
             invalidateOnRefresh: true,
-            scrub: 0.82,
+            fastScrollEnd: true,
+            scrub: 0.32,
             onUpdate: updateRevealState,
           },
         })
@@ -1070,7 +1078,8 @@ export default function Hero({
             trigger: section,
             start: 'top top',
             end: 'bottom top',
-            scrub: 0.95,
+            fastScrollEnd: true,
+            scrub: 0.38,
           },
         })
       }
@@ -1083,7 +1092,8 @@ export default function Hero({
             trigger: section,
             start: 'top top',
             end: 'bottom top',
-            scrub: 0.95,
+            fastScrollEnd: true,
+            scrub: 0.38,
           },
         })
       }
@@ -1096,7 +1106,8 @@ export default function Hero({
             trigger: section,
             start: 'top top',
             end: 'bottom top',
-            scrub: 1.05,
+            fastScrollEnd: true,
+            scrub: 0.44,
           },
         })
       }
@@ -1109,7 +1120,8 @@ export default function Hero({
             trigger: section,
             start: 'top top',
             end: 'bottom top',
-            scrub: 0.95,
+            fastScrollEnd: true,
+            scrub: 0.36,
           },
         })
 
@@ -1120,7 +1132,8 @@ export default function Hero({
             trigger: section,
             start: 'top top',
             end: 'bottom top',
-            scrub: 1,
+            fastScrollEnd: true,
+            scrub: 0.4,
           },
         })
       }
@@ -1133,7 +1146,8 @@ export default function Hero({
             trigger: section,
             start: 'top top',
             end: 'bottom top',
-            scrub: 1.25,
+            fastScrollEnd: true,
+            scrub: 0.48,
           },
         })
       }
@@ -1148,7 +1162,8 @@ export default function Hero({
             trigger: section,
             start: 'top top',
             end: 'bottom top',
-            scrub: 1.2,
+            fastScrollEnd: true,
+            scrub: 0.44,
           },
         })
 
@@ -1160,7 +1175,8 @@ export default function Hero({
             trigger: section,
             start: 'top top',
             end: 'bottom top',
-            scrub: 1.05,
+            fastScrollEnd: true,
+            scrub: 0.42,
           },
         })
 
@@ -1172,7 +1188,8 @@ export default function Hero({
             trigger: section,
             start: 'top top',
             end: 'bottom top',
-            scrub: 1.05,
+            fastScrollEnd: true,
+            scrub: 0.42,
           },
         })
 
@@ -1183,7 +1200,8 @@ export default function Hero({
             trigger: section,
             start: '56% top',
             end: 'bottom top',
-            scrub: 1.05,
+            fastScrollEnd: true,
+            scrub: 0.4,
           },
         })
       }
@@ -1191,9 +1209,6 @@ export default function Hero({
 
     return () => {
       removeCompactListeners()
-      if (!compactLayout) {
-        gsap.ticker.remove(updateRevealState)
-      }
       resetCompactRevealState(true)
       ctx.revert()
     }

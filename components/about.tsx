@@ -47,6 +47,9 @@ export default function About({
     const ctx = gsap.context(() => {
       const revealItems = gsap.utils.toArray<HTMLElement>('[data-about-reveal]')
       const panels = gsap.utils.toArray<HTMLElement>('[data-about-panel]')
+      const compactMotion = window.matchMedia(
+        '(max-width: 1023px), (pointer: coarse)'
+      ).matches
 
       gsap.fromTo(
         revealItems,
@@ -90,30 +93,36 @@ export default function About({
           }
         )
 
-        gsap.to(panel, {
-          yPercent: index % 2 === 0 ? -6 : -12,
+        if (!compactMotion) {
+          gsap.to(panel, {
+            yPercent: index % 2 === 0 ? -4 : -8,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: panel,
+              start: 'top bottom',
+              end: 'bottom top',
+              fastScrollEnd: true,
+              scrub: 0.42,
+            },
+          })
+        }
+      })
+
+      if (!compactMotion) {
+        gsap.to('[data-about-title]', {
+          yPercent: -18,
           ease: 'none',
           scrollTrigger: {
-            trigger: panel,
+            trigger: section,
             start: 'top bottom',
             end: 'bottom top',
-            scrub: 1.2,
+            fastScrollEnd: true,
+            scrub: 0.34,
           },
         })
-      })
+      }
 
-      gsap.to('[data-about-title]', {
-        yPercent: -30,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: section,
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: 0.8,
-        },
-      })
-
-      if (!sharedBackdrop) {
+      if (!sharedBackdrop && !compactMotion) {
         const flowLines = gsap.utils.toArray<SVGPathElement>('[data-flow-line]')
         flowLines.forEach((line, index) => {
           const lineLength = line.getTotalLength()
@@ -129,7 +138,8 @@ export default function About({
               trigger: section,
               start: 'top 80%',
               end: 'bottom 20%',
-              scrub: 1.5,
+              fastScrollEnd: true,
+              scrub: 0.55,
             },
           })
         })
