@@ -119,6 +119,7 @@ export default function Home() {
 
   const readyForLoader = hydrated && fontsReady && layoutReady
   const showLoader = !loaderDone
+  const pageVisible = hydrated && layoutReady
 
   return (
     <>
@@ -135,9 +136,9 @@ export default function Home() {
           data-page-shell="true"
           className="relative overflow-x-clip"
           style={{
-            opacity: hydrated && loaderDone ? 1 : 0,
+            opacity: pageVisible ? 1 : 0,
             pointerEvents: loaderDone ? 'auto' : 'none',
-            visibility: hydrated && loaderDone ? 'visible' : 'hidden',
+            visibility: pageVisible ? 'visible' : 'hidden',
           }}
         >
           <HeroAboutTransition

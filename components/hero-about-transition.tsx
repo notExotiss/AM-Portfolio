@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import About from './about'
 import AboutBackdrop from './about-backdrop'
 import Hero from './hero'
@@ -17,18 +17,17 @@ export default function HeroAboutTransition({
 }: HeroAboutTransitionProps) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const aboutWrapRef = useRef<HTMLDivElement>(null)
-  const [compactRevealReady, setCompactRevealReady] = useState(!compactLayout)
   const [metrics, setMetrics] = useState({
     anchorTopPx: 0,
     overlapPx: 0,
     referenceHeightPx: 0,
   })
 
-  useEffect(() => {
-    setCompactRevealReady(!compactLayout)
-  }, [compactLayout])
-
   useIsomorphicLayoutEffect(() => {
+    if (compactLayout) {
+      return
+    }
+
     const wrapper = wrapperRef.current
     const aboutWrap = aboutWrapRef.current
     const heroSection = wrapper?.querySelector<HTMLElement>('#home')
@@ -37,20 +36,8 @@ export default function HeroAboutTransition({
       return
     }
 
-    const getOverlapPx = () => {
-      if (compactLayout) {
-        if (!compactRevealReady) {
-          return 0
-        }
-
-        return Math.round(window.visualViewport?.height ?? window.innerHeight)
-      }
-
-      return Math.round(window.innerHeight)
-    }
-
     const updateMetrics = () => {
-      const overlapPx = getOverlapPx()
+      const overlapPx = Math.round(window.innerHeight)
       const nextMetrics = {
         anchorTopPx: Math.max(0, heroSection.offsetHeight - overlapPx),
         overlapPx,
@@ -80,15 +67,32 @@ export default function HeroAboutTransition({
     resizeObserver.observe(aboutWrap)
     window.addEventListener('resize', updateMetrics)
     visualViewport?.addEventListener('resize', updateMetrics)
-    visualViewport?.addEventListener('scroll', updateMetrics)
 
     return () => {
       resizeObserver.disconnect()
       window.removeEventListener('resize', updateMetrics)
       visualViewport?.removeEventListener('resize', updateMetrics)
-      visualViewport?.removeEventListener('scroll', updateMetrics)
     }
-  }, [compactLayout, compactRevealReady])
+  }, [compactLayout])
+
+  if (compactLayout) {
+    return (
+      <div ref={wrapperRef} className="relative isolate">
+        <div className="relative z-20">
+          <Hero
+            compactLayout
+            interactiveReady={interactiveReady}
+            sharedBackdrop
+            showAboutPreview
+          />
+        </div>
+
+        <div ref={aboutWrapRef} className="relative z-10">
+          <About disableEntryAnimations />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div ref={wrapperRef} className="relative isolate">
@@ -104,14 +108,7 @@ export default function HeroAboutTransition({
           compactLayout ? '' : 'pointer-events-none'
         }`}
       >
-        <Hero
-          compactLayout={compactLayout}
-          interactiveReady={interactiveReady}
-          onCompactRevealReady={
-            compactLayout ? setCompactRevealReady : undefined
-          }
-          sharedBackdrop
-        />
+        <Hero compactLayout={compactLayout} interactiveReady={interactiveReady} sharedBackdrop />
       </div>
 
       <div

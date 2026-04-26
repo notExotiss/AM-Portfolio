@@ -934,6 +934,11 @@ html.loader-active *::after {
   animation-play-state: paused !important;
 }
 
+html.loader-active,
+html.loader-active body {
+  overscroll-behavior: none;
+}
+
 html.loader-active [data-hero-route-line] {
   stroke-dashoffset: 0 !important;
 }

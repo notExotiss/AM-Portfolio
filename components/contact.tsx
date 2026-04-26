@@ -98,66 +98,74 @@ export default function Contact() {
     }
 
     const context = gsap.context(() => {
-      gsap.to('[data-contact-shell]', {
-        yPercent: -6,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: section,
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: true,
-        },
-      })
+      const compactMotion = window.matchMedia(
+        '(max-width: 1023px), (pointer: coarse)'
+      ).matches
 
-      gsap.to('[data-contact-title]', {
-        yPercent: -18,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: section,
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: 0.8,
-        },
-      })
+      if (!compactMotion) {
+        gsap.to('[data-contact-shell]', {
+          yPercent: -4,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: section,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: 0.35,
+          },
+        })
 
-      gsap.to('[data-contact-beam]', {
-        xPercent: 10,
-        yPercent: -10,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: section,
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: true,
-        },
-      })
+        gsap.to('[data-contact-title-wrap]', {
+          yPercent: -12,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: section,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: 0.4,
+          },
+        })
+
+        gsap.to('[data-contact-beam]', {
+          xPercent: 10,
+          yPercent: -10,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: section,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: 0.35,
+          },
+        })
+      }
 
       const particles = gsap.utils.toArray<HTMLElement>(
         '[data-contact-particle]'
       )
 
-      particles.forEach((particle, index) => {
-        gsap.to(particle, {
-          y: 'random(-25, 25)',
-          x: 'random(-15, 15)',
-          duration: 5 + index * 0.7,
-          ease: 'sine.inOut',
-          repeat: -1,
-          yoyo: true,
-          delay: index * 0.25,
+      if (!compactMotion) {
+        particles.forEach((particle, index) => {
+          gsap.to(particle, {
+            y: 'random(-25, 25)',
+            x: 'random(-15, 15)',
+            duration: 5 + index * 0.7,
+            ease: 'sine.inOut',
+            repeat: -1,
+            yoyo: true,
+            delay: index * 0.25,
+          })
         })
-      })
 
-      gsap.to('[data-contact-grid]', {
-        yPercent: -20,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: section,
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: true,
-        },
-      })
+        gsap.to('[data-contact-grid]', {
+          yPercent: -20,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: section,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: 0.35,
+          },
+        })
+      }
     }, section)
 
     return () => {
@@ -219,6 +227,7 @@ export default function Contact() {
           <div className="relative px-6 py-8 sm:px-8 sm:py-10 xl:px-12 xl:py-12">
             <div className="grid gap-12 xl:grid-cols-[minmax(0,1.18fr)_minmax(22rem,0.82fr)] xl:items-end xl:gap-16">
               <motion.div
+                data-contact-title-wrap
                 className="relative max-w-[58rem] xl:pb-2"
                 initial={{ opacity: 0, y: 34 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -228,7 +237,6 @@ export default function Contact() {
                 <p className="eyebrow mb-5 text-[var(--accent-cool)]">Contact</p>
 
                 <motion.h2
-                  data-contact-title
                   className="max-w-[10ch] text-[clamp(3.3rem,6.2vw,6.2rem)] leading-[0.9] tracking-[-0.078em] text-[#f7f2e8]"
                   initial={{ opacity: 0, y: 46 }}
                   whileInView={{ opacity: 1, y: 0 }}

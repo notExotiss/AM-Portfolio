@@ -113,27 +113,35 @@ const projects: Project[] = [
     id: 3,
     number: '03',
     title: 'AgriSense',
-    category: 'Agriculture Dashboard',
+    category: 'Field Operations Platform',
     summary:
-      'Built an agriculture dashboard for field maps, NDVI analysis, and planning.',
+      'Built a field operations dashboard for plot tracking, analysis, and irrigation planning.',
     detail:
-      'AgriSense pushed me into denser information design. The hard part was turning sensor data, NDVI analysis, and planning tools into something that still felt readable.',
-    role: 'Frontend implementation and information design',
+      'AgriSense brought together satellite layers, saved plots, and system guidance into one dark, high-density workspace for faster field decisions.',
+    role: 'Frontend implementation, data visualization, and product UI',
     tech: ['React', 'Firebase', 'JavaScript', 'Satellite APIs', 'Arduino'],
     accent: '#ffd28f',
     glow: 'rgba(255,210,143,0.12)',
     images: [
       {
         url: '/project4-1.png',
-        note: 'Dashboard for NDVI-based monitoring and field planning.',
+        note: 'Landing page featuring a 3D topographic NDVI map and core platform aspects.',
       },
       {
         url: '/project4-2.png',
-        note: 'Map and analysis workflow for plot-level review.',
+        note: 'Saved plots dashboard achieved through Firebase backend.',
+      },
+      {
+        url: '/project4-3.png',
+        note: 'Analysis view featuring 3D terrain rendering and predictive "What-if" irrigation simulations.',
+      },
+      {
+        url: '/project4-4.png',
+        note: 'Field Operations Workbench with interactive mapping, system diagnostics, and an integrated AI assistant.',
       },
     ],
     links: {
-      website: 'https://brightbite-81e92.web.app/dashboard',
+      website: 'https://agrisense-prod.vercel.app/',
       github: 'https://github.com/notExotiss/AgriSense',
       youtube: 'https://www.youtube.com/watch?v=kbmHF0GeT-0',
     },

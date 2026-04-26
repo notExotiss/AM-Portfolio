@@ -58,6 +58,48 @@ type DecayPatch = {
   seed: number
 }
 
+function AboutPreviewSurface() {
+  return (
+    <div className="absolute inset-0 z-[1] overflow-hidden" aria-hidden="true">
+      <div className="section-frame relative h-full pt-20 sm:pt-24">
+        <div className="grid h-full min-h-full gap-6">
+          <div className="grid gap-6 lg:grid-cols-[0.72fr_1.28fr]">
+            <div className="flex min-h-[11rem] items-end">
+              <div className="h-24 w-[min(58vw,16rem)] rounded-[2.2rem] bg-[radial-gradient(circle_at_30%_30%,rgba(103,221,255,0.18),rgba(255,255,255,0.9)_68%,rgba(255,255,255,0.95))] opacity-90 shadow-[0_24px_80px_rgba(255,255,255,0.18)]" />
+            </div>
+
+            <div
+              className="cutout-stage min-h-[15rem] border border-[#101318]/10 bg-[rgba(255,255,255,0.42)]"
+              style={{
+                clipPath:
+                  'polygon(0 0, calc(100% - 60px) 0, 100% 48px, 100% 100%, 0 100%)',
+              }}
+            />
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[0.94fr_1.06fr]">
+            <div
+              className="cutout-stage min-h-[11rem] border border-[#101318]/10 bg-[#101318]"
+              style={{
+                clipPath:
+                  'polygon(0 0, 100% 0, 100% calc(100% - 54px), calc(100% - 72px) 100%, 0 100%)',
+              }}
+            />
+
+            <div
+              className="cutout-stage min-h-[11rem] border border-[#101318]/12 bg-[rgba(255,255,255,0.62)]"
+              style={{
+                clipPath:
+                  'polygon(0 0, calc(100% - 48px) 0, 100% 40px, 100% 100%, 0 100%)',
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const HERO_SNAPSHOT_TIMEOUT_MS = 1200
 
 const decayPatches: DecayPatch[] = [
@@ -431,6 +473,17 @@ const getHeroSnapshotDpr = (compactLayout: boolean) => {
   return Math.min(dpr, compactLayout ? 1 : 1.3)
 }
 
+const getHeroViewportSize = () => ({
+  width: Math.max(
+    1,
+    Math.round(window.visualViewport?.width ?? window.innerWidth)
+  ),
+  height: Math.max(
+    1,
+    Math.round(window.visualViewport?.height ?? window.innerHeight)
+  ),
+})
+
 const captureHeroWithHtmlToImage = async ({
   dpr,
   target,
@@ -504,12 +557,12 @@ const captureHeroWithHtml2Canvas = async ({
 export default function Hero({
   compactLayout = false,
   interactiveReady = false,
-  onCompactRevealReady,
+  showAboutPreview = false,
   sharedBackdrop = false,
 }: Readonly<{
   compactLayout?: boolean
   interactiveReady?: boolean
-  onCompactRevealReady?: (ready: boolean) => void
+  showAboutPreview?: boolean
   sharedBackdrop?: boolean
 }>) {
   const sectionRef = useRef<HTMLElement>(null)
@@ -555,23 +608,19 @@ export default function Hero({
     }
 
     const syncViewportHeight = () => {
-      setCompactViewportHeight(
-        Math.round(window.visualViewport?.height ?? window.innerHeight)
+      const nextHeight = getHeroViewportSize().height
+      setCompactViewportHeight((current) =>
+        current === nextHeight ? current : nextHeight
       )
     }
 
-    const visualViewport = window.visualViewport
     syncViewportHeight()
     window.addEventListener('resize', syncViewportHeight)
     window.addEventListener('orientationchange', syncViewportHeight)
-    visualViewport?.addEventListener('resize', syncViewportHeight)
-    visualViewport?.addEventListener('scroll', syncViewportHeight)
 
     return () => {
       window.removeEventListener('resize', syncViewportHeight)
       window.removeEventListener('orientationchange', syncViewportHeight)
-      visualViewport?.removeEventListener('resize', syncViewportHeight)
-      visualViewport?.removeEventListener('scroll', syncViewportHeight)
     }
   }, [compactLayout])
 
@@ -579,12 +628,12 @@ export default function Hero({
     if (!compactLayout) {
       compactSnapshotSourceRef.current = null
       setCompactSnapshotReady(false)
-      onCompactRevealReady?.(true)
       return
     }
 
     let cancelled = false
     let captureRafId = 0
+    let lastCapturedViewport = { width: 0, height: 0 }
 
     const captureSnapshot = async () => {
       const target = captureRootRef.current
@@ -592,7 +641,6 @@ export default function Hero({
         return
       }
 
-      onCompactRevealReady?.(false)
       target.style.removeProperty('opacity')
       target.style.removeProperty('visibility')
       setCompactSnapshotReady(false)
@@ -605,15 +653,8 @@ export default function Hero({
           return
         }
 
-        const rect = target.getBoundingClientRect()
-        const viewportWidth = Math.max(
-          1,
-          Math.round(window.visualViewport?.width ?? rect.width)
-        )
-        const viewportHeight = Math.max(
-          1,
-          Math.round(window.visualViewport?.height ?? rect.height)
-        )
+        const { width: viewportWidth, height: viewportHeight } =
+          getHeroViewportSize()
         const dpr = getHeroSnapshotDpr(compactLayout)
 
         const strategies = [
@@ -647,13 +688,15 @@ export default function Hero({
 
         if (!snapshotCanvas) {
           compactSnapshotSourceRef.current = null
-          onCompactRevealReady?.(false)
           return
         }
 
+        lastCapturedViewport = {
+          width: viewportWidth,
+          height: viewportHeight,
+        }
         compactSnapshotSourceRef.current = snapshotCanvas
         setCompactSnapshotReady(true)
-        onCompactRevealReady?.(true)
       } finally {
         document.documentElement.classList.remove('loader-capture')
       }
@@ -672,23 +715,35 @@ export default function Hero({
 
     queueCapture()
 
-    const visualViewport = window.visualViewport
+    const handleResize = () => {
+      const { width, height } = getHeroViewportSize()
+      const widthShift = Math.abs(width - lastCapturedViewport.width)
+      const heightShift = Math.abs(height - lastCapturedViewport.height)
+
+      if (
+        !lastCapturedViewport.width ||
+        widthShift >= 24 ||
+        heightShift >= 120
+      ) {
+        queueCapture()
+      }
+    }
+
     window.addEventListener('orientationchange', queueCapture)
-    visualViewport?.addEventListener('resize', queueCapture)
+    window.addEventListener('resize', handleResize)
 
     return () => {
       cancelled = true
       compactSnapshotSourceRef.current = null
       setCompactSnapshotReady(false)
-      onCompactRevealReady?.(false)
       document.documentElement.classList.remove('loader-capture')
       window.removeEventListener('orientationchange', queueCapture)
-      visualViewport?.removeEventListener('resize', queueCapture)
+      window.removeEventListener('resize', handleResize)
       if (captureRafId) {
         window.cancelAnimationFrame(captureRafId)
       }
     }
-  }, [compactLayout, onCompactRevealReady, sharedBackdrop])
+  }, [compactLayout, sharedBackdrop])
 
   const handleMagnetic = useCallback(
     (event: ReactPointerEvent<HTMLElement>, ref: React.RefObject<HTMLElement | null>) => {
@@ -861,14 +916,8 @@ export default function Hero({
         return false
       }
 
-      const viewportWidth = Math.max(
-        1,
-        Math.round(window.visualViewport?.width ?? window.innerWidth)
-      )
-      const viewportHeight = Math.max(
-        1,
-        Math.round(window.visualViewport?.height ?? window.innerHeight)
-      )
+      const { width: viewportWidth, height: viewportHeight } =
+        getHeroViewportSize()
       const dpr = getHeroSnapshotDpr(true)
       const pixelWidth = Math.max(1, Math.round(viewportWidth * dpr))
       const pixelHeight = Math.max(1, Math.round(viewportHeight * dpr))
@@ -957,9 +1006,13 @@ export default function Hero({
       const revealProgress = clamp(progressRef.current * 1.18, 0, 1)
       const overlayStart = Math.max(0.024, decayPatches[0].enterStart - 0.01)
       const overlayVisible = revealProgress > overlayStart
+      const contentFade = 1 - smoothstep(0.58, 0.86, revealProgress)
       const overlayOpacity = overlayVisible
-        ? 1 - smoothstep(0.986, 0.998, revealProgress)
+        ? 1 - smoothstep(0.94, 0.986, revealProgress)
         : 0
+
+      copy.style.opacity = contentFade.toFixed(4)
+      objectShell.style.opacity = `${0.9 * contentFade}`
 
       if (captureRoot) {
         captureRoot.style.opacity = overlayVisible ? '0' : '1'
@@ -989,9 +1042,12 @@ export default function Hero({
       }
 
       const path = buildHeroMaskPath(revealProgress, revealProgress * 6.2)
-      const stackOpacity = 1 - smoothstep(0.986, 0.998, revealProgress)
+      const stackOpacity = 1 - smoothstep(0.94, 0.986, revealProgress)
+      const contentFade = 1 - smoothstep(0.72, 0.92, revealProgress)
 
       shell.style.opacity = '1'
+      copy.style.opacity = contentFade.toFixed(4)
+      objectShell.style.opacity = `${0.9 * contentFade}`
       captureRoot.style.opacity = stackOpacity.toFixed(4)
       captureRoot.style.visibility = stackOpacity <= 0.002 ? 'hidden' : 'visible'
       updateVisualMask(path)
@@ -1003,7 +1059,7 @@ export default function Hero({
 
     const getRevealDistance = () => {
       const viewportHeight = compactLayout
-        ? Math.round(window.visualViewport?.height ?? window.innerHeight)
+        ? getHeroViewportSize().height
         : window.innerHeight
       const availableScroll = section.offsetHeight - viewportHeight
 
@@ -1017,58 +1073,35 @@ export default function Hero({
       )
     }
 
-    let compactRafId = 0
-    let removeCompactListeners = () => {}
-    if (compactLayout) {
-      const syncCompactReveal = () => {
-        compactRafId = 0
-        const revealDistance = getRevealDistance()
-        const sectionTop = section.getBoundingClientRect().top + window.scrollY
-        progressRef.current = clamp((window.scrollY - sectionTop) / revealDistance, 0, 1)
-        updateMobileRevealState()
-      }
-
-      const requestCompactSync = () => {
-        if (compactRafId !== 0) {
-          return
-        }
-
-        compactRafId = window.requestAnimationFrame(syncCompactReveal)
-      }
-
-      requestCompactSync()
-      window.addEventListener('scroll', requestCompactSync, { passive: true })
-      window.addEventListener('resize', requestCompactSync)
-
-      removeCompactListeners = () => {
-        window.removeEventListener('scroll', requestCompactSync)
-        window.removeEventListener('resize', requestCompactSync)
-        if (compactRafId !== 0) {
-          window.cancelAnimationFrame(compactRafId)
-        }
-      }
+    let revealRafId = 0
+    const syncRevealFromScroll = () => {
+      revealRafId = 0
+      const revealDistance = Math.max(getRevealDistance(), 1)
+      const sectionTop = section.getBoundingClientRect().top + window.scrollY
+      progressRef.current = clamp(
+        (window.scrollY - sectionTop) / revealDistance,
+        0,
+        1
+      )
+      updateRevealState()
     }
+
+    const requestRevealSync = () => {
+      if (revealRafId !== 0) {
+        return
+      }
+
+      revealRafId = window.requestAnimationFrame(syncRevealFromScroll)
+    }
+
+    requestRevealSync()
+    window.addEventListener('scroll', requestRevealSync, { passive: true })
+    window.addEventListener('resize', requestRevealSync)
 
     const ctx = gsap.context(() => {
       const routeItems = gsap.utils.toArray<SVGPathElement>('[data-hero-route-line]')
       const grid = gsap.utils.toArray<HTMLElement>('[data-hero-grid]')
       const motionScale = compactLayout ? 0.72 : 1
-
-      if (!compactLayout) {
-        gsap.to(progressRef, {
-          current: 1,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: section,
-            start: 'top top',
-            end: () => `+=${getRevealDistance()}`,
-            invalidateOnRefresh: true,
-            fastScrollEnd: true,
-            scrub: 0.32,
-            onUpdate: updateRevealState,
-          },
-        })
-      }
 
       if (!compactLayout && titleOneRef.current) {
         gsap.to(titleOneRef.current, {
@@ -1208,7 +1241,11 @@ export default function Hero({
     }, section)
 
     return () => {
-      removeCompactListeners()
+      window.removeEventListener('scroll', requestRevealSync)
+      window.removeEventListener('resize', requestRevealSync)
+      if (revealRafId !== 0) {
+        window.cancelAnimationFrame(revealRafId)
+      }
       resetCompactRevealState(true)
       ctx.revert()
     }
@@ -1339,6 +1376,8 @@ export default function Hero({
             </mask>
           </defs>
         </svg>
+
+        {showAboutPreview ? <AboutPreviewSurface /> : null}
 
         {compactLayout ? (
           <canvas

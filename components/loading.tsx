@@ -93,16 +93,12 @@ const captureWithHtmlToImage = async ({
 const captureWithHtml2Canvas = async ({
   compactLayout,
   dpr,
-  scrollX,
-  scrollY,
   target,
   viewportHeight,
   viewportWidth,
 }: {
   compactLayout: boolean
   dpr: number
-  scrollX: number
-  scrollY: number
   target: HTMLElement
   viewportHeight: number
   viewportWidth: number
@@ -119,14 +115,10 @@ const captureWithHtml2Canvas = async ({
       logging: false,
       removeContainer: true,
       scale: dpr,
-      scrollX,
-      scrollY,
       useCORS: true,
       width: viewportWidth,
       windowHeight: viewportHeight,
       windowWidth: viewportWidth,
-      x: scrollX,
-      y: scrollY,
     }).catch(() => null),
     new Promise<null>((resolve) => {
       globalThis.setTimeout(
@@ -182,6 +174,17 @@ const getCaptureDpr = (compactLayout: boolean) => {
   return Math.min(dpr, compactLayout ? 1.35 : 2)
 }
 
+const getLoaderViewportSize = () => ({
+  width: Math.max(
+    1,
+    Math.round(window.visualViewport?.width ?? window.innerWidth)
+  ),
+  height: Math.max(
+    1,
+    Math.round(window.visualViewport?.height ?? window.innerHeight)
+  ),
+})
+
 const getLoaderPixelSizes = (compactLayout: boolean) => {
   return compactLayout
     ? [96, 72, 52, 38, 28, 20, 14, 10, 7, 5, 3, 2, 1]
@@ -189,17 +192,7 @@ const getLoaderPixelSizes = (compactLayout: boolean) => {
 }
 
 const shouldPreferHtml2Canvas = (compactLayout: boolean) => {
-  if (compactLayout) {
-    return true
-  }
-
-  if (typeof navigator === 'undefined') {
-    return false
-  }
-
-  return /Mac|iPhone|iPad|iPod/i.test(
-    `${navigator.platform} ${navigator.userAgent}`
-  )
+  return compactLayout
 }
 
 const createFrameFromCanvas = (
@@ -350,8 +343,7 @@ export default function Loading({
       return
     }
 
-    const width = document.documentElement.clientWidth
-    const height = globalThis.innerHeight
+    const { width, height } = getLoaderViewportSize()
     const dpr = getCaptureDpr(compactLayout)
     const pixelWidth = Math.max(1, Math.round(width * dpr))
     const pixelHeight = Math.max(1, Math.round(height * dpr))
@@ -394,16 +386,14 @@ export default function Loading({
       })
 
       try {
-        const viewportWidth = document.documentElement.clientWidth
-        const viewportHeight = globalThis.innerHeight
+        const { width: viewportWidth, height: viewportHeight } =
+          getLoaderViewportSize()
         const captureStrategies = shouldPreferHtml2Canvas(compactLayout)
           ? [
               () =>
                 captureWithHtml2Canvas({
                   compactLayout,
                   dpr,
-                  scrollX: initScrollX,
-                  scrollY: initScrollY,
                   target,
                   viewportHeight,
                   viewportWidth,
@@ -430,8 +420,6 @@ export default function Loading({
                 captureWithHtml2Canvas({
                   compactLayout,
                   dpr,
-                  scrollX: initScrollX,
-                  scrollY: initScrollY,
                   target,
                   viewportHeight,
                   viewportWidth,
@@ -492,8 +480,7 @@ export default function Loading({
     }
 
     const dpr = getCaptureDpr(compactLayout)
-    const cssWidth = document.documentElement.clientWidth
-    const cssHeight = globalThis.innerHeight
+    const { width: cssWidth, height: cssHeight } = getLoaderViewportSize()
     const pixelWidth = Math.max(1, Math.round(cssWidth * dpr))
     const pixelHeight = Math.max(1, Math.round(cssHeight * dpr))
     const context = configureCanvas(
@@ -563,9 +550,11 @@ export default function Loading({
       className="pointer-events-none fixed inset-0 z-[110] bg-[#05070d]"
       style={{
         backgroundColor: '#05070d',
+        height: '100dvh',
         inset: 0,
         pointerEvents: 'none',
         position: 'fixed',
+        width: '100vw',
         zIndex: 110,
       }}
     >

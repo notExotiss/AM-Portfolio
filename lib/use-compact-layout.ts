@@ -19,9 +19,21 @@ export function useCompactLayout(breakpoint = COMPACT_BREAKPOINT) {
     const smallViewport = window.matchMedia(`(max-width: ${breakpoint - 1}px)`)
 
     const syncLayout = () => {
-      setState({
-        compactLayout: window.innerWidth < breakpoint || coarsePointer.matches,
-        layoutReady: true,
+      const nextCompactLayout =
+        window.innerWidth < breakpoint || coarsePointer.matches
+
+      setState((current) => {
+        if (
+          current.compactLayout === nextCompactLayout &&
+          current.layoutReady
+        ) {
+          return current
+        }
+
+        return {
+          compactLayout: nextCompactLayout,
+          layoutReady: true,
+        }
       })
     }
 
