@@ -98,33 +98,11 @@ export default function Contact() {
     }
 
     const context = gsap.context(() => {
-      const compactMotion = window.matchMedia(
+      const compactMotion = globalThis.matchMedia(
         '(max-width: 1023px), (pointer: coarse)'
       ).matches
 
       if (!compactMotion) {
-        gsap.to('[data-contact-shell]', {
-          yPercent: -4,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: section,
-            start: 'top bottom',
-            end: 'bottom top',
-            scrub: 0.35,
-          },
-        })
-
-        gsap.to('[data-contact-title-wrap]', {
-          yPercent: -12,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: section,
-            start: 'top bottom',
-            end: 'bottom top',
-            scrub: 0.4,
-          },
-        })
-
         gsap.to('[data-contact-beam]', {
           xPercent: 10,
           yPercent: -10,
@@ -262,7 +240,7 @@ export default function Contact() {
                 }}
               >
                 <p className="text-[1.04rem] leading-relaxed text-[#ddd6ca] sm:text-[1.15rem]">
-                  If you want to talk about a project, competition idea, design
+                  If you want to talk about a project, idea of yours, design
                   pass, or something weird on the web, send me a message. I like
                   building things that actually have some personality.
                 </p>

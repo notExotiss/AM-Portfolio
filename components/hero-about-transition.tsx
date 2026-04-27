@@ -24,10 +24,6 @@ export default function HeroAboutTransition({
   })
 
   useIsomorphicLayoutEffect(() => {
-    if (compactLayout) {
-      return
-    }
-
     const wrapper = wrapperRef.current
     const aboutWrap = aboutWrapRef.current
     const heroSection = wrapper?.querySelector<HTMLElement>('#home')
@@ -74,25 +70,6 @@ export default function HeroAboutTransition({
       visualViewport?.removeEventListener('resize', updateMetrics)
     }
   }, [compactLayout])
-
-  if (compactLayout) {
-    return (
-      <div ref={wrapperRef} className="relative isolate">
-        <div className="relative z-20">
-          <Hero
-            compactLayout
-            interactiveReady={interactiveReady}
-            sharedBackdrop
-            showAboutPreview
-          />
-        </div>
-
-        <div ref={aboutWrapRef} className="relative z-10">
-          <About disableEntryAnimations />
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div ref={wrapperRef} className="relative isolate">
