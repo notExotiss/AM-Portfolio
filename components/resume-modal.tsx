@@ -15,8 +15,6 @@ const skills = [
   'Tailwind',
   'Java',
   'Firebase',
-  'Git',
-  'Shadcn',
   'Three.js',
 ]
 
