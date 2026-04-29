@@ -58,7 +58,7 @@ export default function Footer() {
           className="flex items-center gap-5 text-sm text-[#a9a191]"
         >
           <span className="group inline-flex font-mono tracking-wide" data-cursor="hover">
-            <RollingText text="Edison, NJ" />
+            <RollingText text="Made in Edison, NJ" />
           </span>
           <span className="w-1 h-1 rounded-full bg-white/20" />
           <button
@@ -69,7 +69,7 @@ export default function Footer() {
             }}
             className="group inline-flex font-mono tracking-wide hover:text-white transition-colors duration-300"
           >
-            <RollingText text="Back to top" />
+            <RollingText text="Run it back" />
           </button>
         </div>
       </div>

@@ -268,8 +268,8 @@ export default function About({
                   data-about-reveal
                   className="mt-6 max-w-[26rem] text-base leading-relaxed text-[#101318]/66 sm:text-lg"
                 >
-                  I like the part where code starts feeling like a real thing people
-                  can touch, move through, and remember.
+                  Mostly I just like building stuff and seeing if it actually
+                  works.
                 </p>
 
                 <button
@@ -297,24 +297,29 @@ export default function About({
               >
                 <div className="grid gap-6 text-[1.02rem] leading-relaxed text-[#171a20]/88 sm:text-[1.12rem]">
                   <p>
-                    Hey, I&apos;m a high school student who loves coding and building
-                    cool stuff. I&apos;m currently a sophomore at John P. Stevens High
-                    School, and when I&apos;m not in class, I&apos;m usually working on
-                    projects, competing in programming contests, or tinkering with
-                    new tech.
+                    Hey, I&apos;m Aarit. I&apos;m a sophomore at John P.
+                    Stevens, and I spend most of my time on code, math, and
+                    robotics, plus whatever random project I&apos;ve talked
+                    myself into that week.
                   </p>
                   <p>
-                    I started coding with C a few years ago and got hooked pretty
-                    fast. Since then I&apos;ve been learning web development, working
-                    with React and Next.js, and building projects that solve real
-                    problems instead of just sitting in a repo.
+                    I first got into tech back in elementary school, mostly
+                    because I was hell bent on playing Minecraft on this
+                    ancient Chromebook I had. It barely ran anything, so I
+                    started digging around, ended up swapping it over to
+                    Linux, and pretty much went down the rabbit hole from
+                    there.
                   </p>
                   <p>
-                    I&apos;m also co-founding the Woodrow Wilson Math Competition, and
-                    I built the platform that helps run it for 400+ students. When
-                    I&apos;m not coding, I&apos;m around robotics, math competitions,
-                    volleyball, running, and art. I like figuring things out and
-                    seeing something I built actually work.
+                    Now I build websites, mess around with robots, and write
+                    a lot of code I&apos;ll probably rewrite next week. I also
+                    co-founded the Woodrow Wilson Math Competition and built
+                    the platform we use to run it for 400+ kids.
+                  </p>
+                  <p>
+                    Outside of that I&apos;m usually tinkering with something
+                    new, reading, or trying to figure out why my latest idea
+                    isn&apos;t working yet.
                   </p>
                 </div>
               </div>
